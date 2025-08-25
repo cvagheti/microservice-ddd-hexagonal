@@ -30,6 +30,12 @@
             <artifactId>spring-context</artifactId>
         </dependency>
 
+        <!-- Spring Transaction for @Transactional support -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+        </dependency>
+
         <!-- Jakarta Validation -->
         <dependency>
             <groupId>jakarta.validation</groupId>

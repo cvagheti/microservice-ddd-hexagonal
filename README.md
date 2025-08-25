@@ -1,5 +1,13 @@
 # Microserviço com Spring Boot, DDD e Arquitetura Hexagonal
 
+![Java](https://img.shields.io/badge/Java-21-orange?style=flat-square&logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.1.5-brightgreen?style=flat-square&logo=spring-boot)
+![Maven](https://img.shields.io/badge/Maven-3.9+-blue?style=flat-square&logo=apache-maven)
+![Architecture](https://img.shields.io/badge/Architecture-Hexagonal-purple?style=flat-square)
+![DDD](https://img.shields.io/badge/DDD-Domain%20Driven%20Design-yellow?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+![Build](https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square)
+
 Este projeto demonstra a implementação de um microserviço utilizando Spring Boot, princípios de Domain-Driven Design (DDD) e Arquitetura Hexagonal, organizado em módulos Maven separados.
 
 ## Estrutura do Projeto
