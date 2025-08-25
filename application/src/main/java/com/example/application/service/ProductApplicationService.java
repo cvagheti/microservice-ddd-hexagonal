@@ -3,7 +3,7 @@ package com.example.application.service;
 import com.example.domain.model.Product;
 import com.example.domain.model.ProductId;
 import com.example.domain.model.Money;
-import com.example.domain.repository.ProductRepository;
+import com.example.application.port.out.ProductPersistencePort;
 import com.example.domain.service.ProductDomainService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,13 +21,13 @@ import java.util.Optional;
 @Transactional
 public class ProductApplicationService {
     
-    private final ProductRepository productRepository;
+    private final ProductPersistencePort productPersistencePort;
     private final ProductDomainService productDomainService;
     
-    public ProductApplicationService(ProductRepository productRepository, 
+    public ProductApplicationService(ProductPersistencePort productPersistencePort, 
                                    ProductDomainService productDomainService) {
-        this.productRepository = Objects.requireNonNull(productRepository, 
-                "Product repository cannot be null");
+        this.productPersistencePort = Objects.requireNonNull(productPersistencePort, 
+                "Product persistence port cannot be null");
         this.productDomainService = Objects.requireNonNull(productDomainService, 
                 "Product domain service cannot be null");
     }
@@ -46,10 +46,11 @@ public class ProductApplicationService {
         Product product = new Product(name, description, price, stockQuantity);
         
         // Validate domain rules
-        productDomainService.validateProductForCreation(product);
+        List<Product> existingProducts = productPersistencePort.findByNameContaining(product.getName());
+        productDomainService.validateProductForCreation(product, existingProducts);
         
         // Save and return
-        return productRepository.save(product);
+        return productPersistencePort.save(product);
     }
     
     /**
@@ -64,7 +65,7 @@ public class ProductApplicationService {
      */
     public Product updateProduct(ProductId productId, String name, String description, Money price) {
         // Find existing product
-        Product product = productRepository.findById(productId)
+        Product product = productPersistencePort.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Product not found with ID: " + productId.getValue()));
         
@@ -74,10 +75,12 @@ public class ProductApplicationService {
         product.updatePrice(price);
         
         // Validate domain rules
-        productDomainService.validateProductForUpdate(product);
+        List<Product> existingProducts = productPersistencePort.findByNameContaining(product.getName());
+        boolean productExists = productPersistencePort.existsById(product.getId());
+        productDomainService.validateProductForUpdate(product, existingProducts, productExists);
         
         // Save and return
-        return productRepository.save(product);
+        return productPersistencePort.save(product);
     }
     
     /**
@@ -89,12 +92,12 @@ public class ProductApplicationService {
      * @throws IllegalArgumentException if product not found
      */
     public Product addStock(ProductId productId, int quantity) {
-        Product product = productRepository.findById(productId)
+        Product product = productPersistencePort.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Product not found with ID: " + productId.getValue()));
         
         product.addStock(quantity);
-        return productRepository.save(product);
+        return productPersistencePort.save(product);
     }
     
     /**
@@ -107,12 +110,12 @@ public class ProductApplicationService {
      * @throws IllegalStateException if insufficient stock
      */
     public Product removeStock(ProductId productId, int quantity) {
-        Product product = productRepository.findById(productId)
+        Product product = productPersistencePort.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Product not found with ID: " + productId.getValue()));
         
         product.removeStock(quantity);
-        return productRepository.save(product);
+        return productPersistencePort.save(product);
     }
     
     /**
@@ -123,12 +126,12 @@ public class ProductApplicationService {
      * @throws IllegalArgumentException if product not found
      */
     public Product activateProduct(ProductId productId) {
-        Product product = productRepository.findById(productId)
+        Product product = productPersistencePort.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Product not found with ID: " + productId.getValue()));
         
         product.activate();
-        return productRepository.save(product);
+        return productPersistencePort.save(product);
     }
     
     /**
@@ -139,12 +142,12 @@ public class ProductApplicationService {
      * @throws IllegalArgumentException if product not found
      */
     public Product deactivateProduct(ProductId productId) {
-        Product product = productRepository.findById(productId)
+        Product product = productPersistencePort.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Product not found with ID: " + productId.getValue()));
         
         product.deactivate();
-        return productRepository.save(product);
+        return productPersistencePort.save(product);
     }
     
     /**
@@ -154,12 +157,13 @@ public class ProductApplicationService {
      * @throws IllegalArgumentException if product not found or cannot be deleted
      */
     public void deleteProduct(ProductId productId) {
-        if (!productDomainService.canDeleteProduct(productId)) {
+        boolean productExists = productPersistencePort.existsById(productId);
+        if (!productDomainService.canDeleteProduct(productId, productExists)) {
             throw new IllegalArgumentException(
                     "Product cannot be deleted: " + productId.getValue());
         }
         
-        productRepository.deleteById(productId);
+        productPersistencePort.deleteById(productId);
     }
     
     /**
@@ -170,7 +174,7 @@ public class ProductApplicationService {
      */
     @Transactional(readOnly = true)
     public Optional<Product> findProductById(ProductId productId) {
-        return productRepository.findById(productId);
+        return productPersistencePort.findById(productId);
     }
     
     /**
@@ -180,7 +184,7 @@ public class ProductApplicationService {
      */
     @Transactional(readOnly = true)
     public List<Product> findAllProducts() {
-        return productRepository.findAll();
+        return productPersistencePort.findAll();
     }
     
     /**
@@ -191,7 +195,7 @@ public class ProductApplicationService {
      */
     @Transactional(readOnly = true)
     public List<Product> findProductsByName(String name) {
-        return productRepository.findByNameContaining(name);
+        return productPersistencePort.findByNameContaining(name);
     }
     
     /**
@@ -201,7 +205,7 @@ public class ProductApplicationService {
      */
     @Transactional(readOnly = true)
     public List<Product> findActiveProducts() {
-        return productRepository.findActiveProducts();
+        return productPersistencePort.findActiveProducts();
     }
     
     /**
@@ -211,6 +215,8 @@ public class ProductApplicationService {
      */
     @Transactional(readOnly = true)
     public ProductDomainService.InventoryStatistics getInventoryStatistics() {
-        return productDomainService.calculateInventoryStatistics();
+        List<Product> allProducts = productPersistencePort.findAll();
+        List<Product> activeProducts = productPersistencePort.findActiveProducts();
+        return productDomainService.calculateInventoryStatistics(allProducts, activeProducts);
     }
 }

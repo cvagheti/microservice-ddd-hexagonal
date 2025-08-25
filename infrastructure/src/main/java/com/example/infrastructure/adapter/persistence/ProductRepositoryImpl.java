@@ -3,7 +3,7 @@ package com.example.infrastructure.adapter.persistence;
 import com.example.domain.model.Product;
 import com.example.domain.model.ProductId;
 import com.example.domain.model.ProductStatus;
-import com.example.domain.repository.ProductRepository;
+import com.example.application.port.out.ProductPersistencePort;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -12,12 +12,12 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * JPA implementation of ProductRepository.
- * This repository implementation uses Spring Data JPA to provide persistence operations.
- * It bridges between the domain layer and the persistence infrastructure.
+ * JPA implementation of ProductPersistencePort.
+ * This adapter implements the outbound port for product persistence operations.
+ * It bridges between the application layer and the persistence infrastructure.
  */
 @Repository
-public class ProductRepositoryImpl implements ProductRepository {
+public class ProductRepositoryImpl implements ProductPersistencePort {
     
     private final ProductJpaRepository jpaRepository;
     
