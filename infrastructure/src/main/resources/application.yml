@@ -1,0 +1,38 @@
+# Application Configuration
+spring.application.name=microservice-ddd-hexagonal
+server.port=8080
+
+# Database Configuration (H2 for development)
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=password
+
+# JPA Configuration
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.show-sql=true
+spring.jpa.format-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+# H2 Console (for development only)
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+
+# Logging Configuration
+logging.level.com.example=DEBUG
+logging.level.org.springframework.web=DEBUG
+logging.level.org.hibernate.SQL=DEBUG
+logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE
+
+# Actuator Configuration
+management.endpoints.web.exposure.include=health,info,metrics
+management.endpoint.health.show-details=always
+
+# Jackson Configuration
+spring.jackson.serialization.write-dates-as-timestamps=false
+spring.jackson.serialization.indent-output=true
+
+# Validation Configuration
+spring.mvc.throw-exception-if-no-handler-found=true
+spring.web.resources.add-mappings=false

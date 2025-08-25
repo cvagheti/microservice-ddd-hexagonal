@@ -1,0 +1,35 @@
+# Production Configuration
+spring:
+  application:
+    name: microservice-ddd-hexagonal
+  
+  datasource:
+    url: jdbc:postgresql://localhost:5432/productdb
+    username: ${DB_USERNAME:productuser}
+    password: ${DB_PASSWORD:productpass}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  h2:
+    console:
+      enabled: false
+
+server:
+  port: ${SERVER_PORT:8080}
+
+logging:
+  level:
+    com.example: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
