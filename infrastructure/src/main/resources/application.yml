@@ -1,38 +1,64 @@
 # Application Configuration
-spring.application.name=microservice-ddd-hexagonal
-server.port=8080
+spring:
+  application:
+    name: microservice-ddd-hexagonal
+  
+  # Database Configuration (H2 for development)
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  
+  # JPA Configuration
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    format-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    defer-datasource-initialization: true  # Allow Hibernate to create tables before data.sql runs
+  
+  # H2 Console (for development only)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  # Jackson Configuration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      indent-output: true
+  
+  # Validation Configuration
+  mvc:
+    throw-exception-if-no-handler-found: true
+  web:
+    resources:
+      add-mappings: false
 
-# Database Configuration (H2 for development)
-spring.datasource.url=jdbc:h2:mem:testdb
-spring.datasource.driverClassName=org.h2.Driver
-spring.datasource.username=sa
-spring.datasource.password=password
-
-# JPA Configuration
-spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
-spring.jpa.hibernate.ddl-auto=create-drop
-spring.jpa.show-sql=true
-spring.jpa.format-sql=true
-spring.jpa.properties.hibernate.format_sql=true
-
-# H2 Console (for development only)
-spring.h2.console.enabled=true
-spring.h2.console.path=/h2-console
+# Server Configuration
+server:
+  port: 8080
 
 # Logging Configuration
-logging.level.com.example=DEBUG
-logging.level.org.springframework.web=DEBUG
-logging.level.org.hibernate.SQL=DEBUG
-logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE
+logging:
+  level:
+    com.example: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
 # Actuator Configuration
-management.endpoints.web.exposure.include=health,info,metrics
-management.endpoint.health.show-details=always
-
-# Jackson Configuration
-spring.jackson.serialization.write-dates-as-timestamps=false
-spring.jackson.serialization.indent-output=true
-
-# Validation Configuration
-spring.mvc.throw-exception-if-no-handler-found=true
-spring.web.resources.add-mappings=false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

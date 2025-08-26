@@ -3,7 +3,7 @@ package com.example.application.service;
 import com.example.domain.model.Product;
 import com.example.domain.model.ProductId;
 import com.example.domain.model.Money;
-import com.example.application.port.out.ProductPersistencePort;
+import com.example.application.repository.ProductRepository;
 import com.example.domain.service.ProductDomainService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,13 +21,13 @@ import java.util.Optional;
 @Transactional
 public class ProductApplicationService {
     
-    private final ProductPersistencePort productPersistencePort;
+    private final ProductRepository productRepository;
     private final ProductDomainService productDomainService;
     
-    public ProductApplicationService(ProductPersistencePort productPersistencePort, 
+    public ProductApplicationService(ProductRepository productRepository, 
                                    ProductDomainService productDomainService) {
-        this.productPersistencePort = Objects.requireNonNull(productPersistencePort, 
-                "Product persistence port cannot be null");
+        this.productRepository = Objects.requireNonNull(productRepository, 
+                "Product repository cannot be null");
         this.productDomainService = Objects.requireNonNull(productDomainService, 
                 "Product domain service cannot be null");
     }
@@ -46,11 +46,11 @@ public class ProductApplicationService {
         Product product = new Product(name, description, price, stockQuantity);
         
         // Validate domain rules
-        List<Product> existingProducts = productPersistencePort.findByNameContaining(product.getName());
+        List<Product> existingProducts = productRepository.findByNameContaining(product.getName());
         productDomainService.validateProductForCreation(product, existingProducts);
         
         // Save and return
-        return productPersistencePort.save(product);
+        return productRepository.save(product);
     }
     
     /**
@@ -65,7 +65,7 @@ public class ProductApplicationService {
      */
     public Product updateProduct(ProductId productId, String name, String description, Money price) {
         // Find existing product
-        Product product = productPersistencePort.findById(productId)
+        Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Product not found with ID: " + productId.getValue()));
         
@@ -75,12 +75,12 @@ public class ProductApplicationService {
         product.updatePrice(price);
         
         // Validate domain rules
-        List<Product> existingProducts = productPersistencePort.findByNameContaining(product.getName());
-        boolean productExists = productPersistencePort.existsById(product.getId());
+        List<Product> existingProducts = productRepository.findByNameContaining(product.getName());
+        boolean productExists = productRepository.existsById(product.getId());
         productDomainService.validateProductForUpdate(product, existingProducts, productExists);
         
         // Save and return
-        return productPersistencePort.save(product);
+        return productRepository.save(product);
     }
     
     /**
@@ -92,12 +92,12 @@ public class ProductApplicationService {
      * @throws IllegalArgumentException if product not found
      */
     public Product addStock(ProductId productId, int quantity) {
-        Product product = productPersistencePort.findById(productId)
+        Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Product not found with ID: " + productId.getValue()));
         
         product.addStock(quantity);
-        return productPersistencePort.save(product);
+        return productRepository.save(product);
     }
     
     /**
@@ -110,12 +110,12 @@ public class ProductApplicationService {
      * @throws IllegalStateException if insufficient stock
      */
     public Product removeStock(ProductId productId, int quantity) {
-        Product product = productPersistencePort.findById(productId)
+        Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Product not found with ID: " + productId.getValue()));
         
         product.removeStock(quantity);
-        return productPersistencePort.save(product);
+        return productRepository.save(product);
     }
     
     /**
@@ -126,12 +126,12 @@ public class ProductApplicationService {
      * @throws IllegalArgumentException if product not found
      */
     public Product activateProduct(ProductId productId) {
-        Product product = productPersistencePort.findById(productId)
+        Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Product not found with ID: " + productId.getValue()));
         
         product.activate();
-        return productPersistencePort.save(product);
+        return productRepository.save(product);
     }
     
     /**
@@ -142,12 +142,12 @@ public class ProductApplicationService {
      * @throws IllegalArgumentException if product not found
      */
     public Product deactivateProduct(ProductId productId) {
-        Product product = productPersistencePort.findById(productId)
+        Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Product not found with ID: " + productId.getValue()));
         
         product.deactivate();
-        return productPersistencePort.save(product);
+        return productRepository.save(product);
     }
     
     /**
@@ -157,13 +157,13 @@ public class ProductApplicationService {
      * @throws IllegalArgumentException if product not found or cannot be deleted
      */
     public void deleteProduct(ProductId productId) {
-        boolean productExists = productPersistencePort.existsById(productId);
+        boolean productExists = productRepository.existsById(productId);
         if (!productDomainService.canDeleteProduct(productId, productExists)) {
             throw new IllegalArgumentException(
                     "Product cannot be deleted: " + productId.getValue());
         }
         
-        productPersistencePort.deleteById(productId);
+        productRepository.deleteById(productId);
     }
     
     /**
@@ -174,7 +174,7 @@ public class ProductApplicationService {
      */
     @Transactional(readOnly = true)
     public Optional<Product> findProductById(ProductId productId) {
-        return productPersistencePort.findById(productId);
+        return productRepository.findById(productId);
     }
     
     /**
@@ -184,7 +184,7 @@ public class ProductApplicationService {
      */
     @Transactional(readOnly = true)
     public List<Product> findAllProducts() {
-        return productPersistencePort.findAll();
+        return productRepository.findAll();
     }
     
     /**
@@ -195,7 +195,7 @@ public class ProductApplicationService {
      */
     @Transactional(readOnly = true)
     public List<Product> findProductsByName(String name) {
-        return productPersistencePort.findByNameContaining(name);
+        return productRepository.findByNameContaining(name);
     }
     
     /**
@@ -205,7 +205,7 @@ public class ProductApplicationService {
      */
     @Transactional(readOnly = true)
     public List<Product> findActiveProducts() {
-        return productPersistencePort.findActiveProducts();
+        return productRepository.findActiveProducts();
     }
     
     /**
@@ -215,8 +215,8 @@ public class ProductApplicationService {
      */
     @Transactional(readOnly = true)
     public ProductDomainService.InventoryStatistics getInventoryStatistics() {
-        List<Product> allProducts = productPersistencePort.findAll();
-        List<Product> activeProducts = productPersistencePort.findActiveProducts();
+        List<Product> allProducts = productRepository.findAll();
+        List<Product> activeProducts = productRepository.findActiveProducts();
         return productDomainService.calculateInventoryStatistics(allProducts, activeProducts);
     }
 }

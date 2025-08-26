@@ -1,4 +1,4 @@
-package com.example.infrastructure.adapter.persistence;
+package com.example.infrastructure.persistence;
 
 import com.example.domain.model.ProductStatus;
 import org.springframework.data.jpa.repository.JpaRepository;

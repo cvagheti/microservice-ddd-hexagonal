@@ -3,8 +3,10 @@ package com.example.infrastructure.adapter.web;
 import com.example.application.dto.CreateProductRequest;
 import com.example.application.dto.ProductDto;
 import com.example.application.dto.UpdateProductRequest;
-import com.example.application.port.in.ProductManagementUseCase;
-import com.example.domain.service.ProductDomainService;
+import com.example.application.usecase.ProductManagementUseCase;
+import com.example.domain.model.Money;
+import com.example.domain.model.Product;
+import com.example.domain.model.ProductId;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,11 +15,18 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * REST Controller for Product Management.
- * This adapter implements the web interface for product operations.
- * It translates HTTP requests to use case calls and handles responses.
+ * This web controller implements the REST API interface for product operations.
+ * It translates HTTP requests to use case calls and handles HTTP responses.
+ * 
+ * Architectural Role: Web Controller (Primary Adapter in Hexagonal Architecture)
+ * - Receives HTTP requests from external clients
+ * - Converts request data to domain objects
+ * - Delegates business operations to use cases
+ * - Converts domain responses to DTOs for HTTP responses
  */
 @RestController
 @RequestMapping("/api/v1/products")
@@ -40,8 +49,14 @@ public class ProductController {
     @PostMapping
     public ResponseEntity<ProductDto> createProduct(@Valid @RequestBody CreateProductRequest request) {
         try {
-            ProductDto createdProduct = productManagementUseCase.createProduct(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdProduct);
+            Money price = Money.of(request.getPrice(), request.getCurrency());
+            Product createdProduct = productManagementUseCase.createProduct(
+                    request.getName(),
+                    request.getDescription(),
+                    price,
+                    request.getStockQuantity()
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).body(ProductDto.fromDomain(createdProduct));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }
@@ -55,8 +70,9 @@ public class ProductController {
      */
     @GetMapping("/{productId}")
     public ResponseEntity<ProductDto> getProduct(@PathVariable String productId) {
-        Optional<ProductDto> product = productManagementUseCase.findProductById(productId);
-        return product.map(ResponseEntity::ok)
+        ProductId id = ProductId.of(productId);
+        Optional<Product> product = productManagementUseCase.findProductById(id);
+        return product.map(p -> ResponseEntity.ok(ProductDto.fromDomain(p)))
                 .orElse(ResponseEntity.notFound().build());
     }
     
@@ -67,8 +83,11 @@ public class ProductController {
      */
     @GetMapping
     public ResponseEntity<List<ProductDto>> getAllProducts() {
-        List<ProductDto> products = productManagementUseCase.findAllProducts();
-        return ResponseEntity.ok(products);
+        List<Product> products = productManagementUseCase.findAllProducts();
+        List<ProductDto> productDtos = products.stream()
+                .map(ProductDto::fromDomain)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(productDtos);
     }
     
     /**
@@ -78,8 +97,11 @@ public class ProductController {
      */
     @GetMapping("/active")
     public ResponseEntity<List<ProductDto>> getActiveProducts() {
-        List<ProductDto> products = productManagementUseCase.findActiveProducts();
-        return ResponseEntity.ok(products);
+        List<Product> products = productManagementUseCase.findActiveProducts();
+        List<ProductDto> productDtos = products.stream()
+                .map(ProductDto::fromDomain)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(productDtos);
     }
     
     /**
@@ -94,8 +116,11 @@ public class ProductController {
             return ResponseEntity.badRequest().build();
         }
         
-        List<ProductDto> products = productManagementUseCase.findProductsByName(name);
-        return ResponseEntity.ok(products);
+        List<Product> products = productManagementUseCase.findProductsByName(name);
+        List<ProductDto> productDtos = products.stream()
+                .map(ProductDto::fromDomain)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(productDtos);
     }
     
     /**
@@ -109,8 +134,15 @@ public class ProductController {
     public ResponseEntity<ProductDto> updateProduct(@PathVariable String productId,
                                                    @Valid @RequestBody UpdateProductRequest request) {
         try {
-            ProductDto updatedProduct = productManagementUseCase.updateProduct(productId, request);
-            return ResponseEntity.ok(updatedProduct);
+            ProductId id = ProductId.of(productId);
+            Money price = Money.of(request.getPrice(), request.getCurrency());
+            Product updatedProduct = productManagementUseCase.updateProduct(
+                    id,
+                    request.getName(),
+                    request.getDescription(),
+                    price
+            );
+            return ResponseEntity.ok(ProductDto.fromDomain(updatedProduct));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
@@ -131,8 +163,9 @@ public class ProductController {
                 return ResponseEntity.badRequest().build();
             }
             
-            ProductDto updatedProduct = productManagementUseCase.addStock(productId, quantity);
-            return ResponseEntity.ok(updatedProduct);
+            ProductId id = ProductId.of(productId);
+            Product updatedProduct = productManagementUseCase.addStock(id, quantity);
+            return ResponseEntity.ok(ProductDto.fromDomain(updatedProduct));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
@@ -153,8 +186,9 @@ public class ProductController {
                 return ResponseEntity.badRequest().build();
             }
             
-            ProductDto updatedProduct = productManagementUseCase.removeStock(productId, quantity);
-            return ResponseEntity.ok(updatedProduct);
+            ProductId id = ProductId.of(productId);
+            Product updatedProduct = productManagementUseCase.removeStock(id, quantity);
+            return ResponseEntity.ok(ProductDto.fromDomain(updatedProduct));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         } catch (IllegalStateException e) {
@@ -171,8 +205,9 @@ public class ProductController {
     @PatchMapping("/{productId}/activate")
     public ResponseEntity<ProductDto> activateProduct(@PathVariable String productId) {
         try {
-            ProductDto activatedProduct = productManagementUseCase.activateProduct(productId);
-            return ResponseEntity.ok(activatedProduct);
+            ProductId id = ProductId.of(productId);
+            Product activatedProduct = productManagementUseCase.activateProduct(id);
+            return ResponseEntity.ok(ProductDto.fromDomain(activatedProduct));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
@@ -187,8 +222,9 @@ public class ProductController {
     @PatchMapping("/{productId}/deactivate")
     public ResponseEntity<ProductDto> deactivateProduct(@PathVariable String productId) {
         try {
-            ProductDto deactivatedProduct = productManagementUseCase.deactivateProduct(productId);
-            return ResponseEntity.ok(deactivatedProduct);
+            ProductId id = ProductId.of(productId);
+            Product deactivatedProduct = productManagementUseCase.deactivateProduct(id);
+            return ResponseEntity.ok(ProductDto.fromDomain(deactivatedProduct));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
@@ -203,7 +239,8 @@ public class ProductController {
     @DeleteMapping("/{productId}")
     public ResponseEntity<Void> deleteProduct(@PathVariable String productId) {
         try {
-            productManagementUseCase.deleteProduct(productId);
+            ProductId id = ProductId.of(productId);
+            productManagementUseCase.deleteProduct(id);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -216,8 +253,8 @@ public class ProductController {
      * @return inventory statistics
      */
     @GetMapping("/statistics")
-    public ResponseEntity<ProductDomainService.InventoryStatistics> getInventoryStatistics() {
-        ProductDomainService.InventoryStatistics stats = productManagementUseCase.getInventoryStatistics();
+    public ResponseEntity<ProductManagementUseCase.InventoryStatistics> getInventoryStatistics() {
+        ProductManagementUseCase.InventoryStatistics stats = productManagementUseCase.getInventoryStatistics();
         return ResponseEntity.ok(stats);
     }
 }

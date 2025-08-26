@@ -25,9 +25,7 @@ microservice-ddd-hexagonal/
 │       │   ├── ProductId.java        # Value Object para ID
 │       │   ├── ProductStatus.java    # Enum de status
 │       │   └── Money.java            # Value Object para valores monetários
-│       ├── repository/               # Interfaces de repositório
-│       │   └── ProductRepository.java
-│       └── service/                  # Serviços de domínio
+│       └── service/                  # Serviços de domínio puros
 │           └── ProductDomainService.java
 ├── application/                      # Módulo de Aplicação
 │   ├── pom.xml
@@ -38,11 +36,10 @@ microservice-ddd-hexagonal/
 │       │   ├── ProductDto.java
 │       │   ├── CreateProductRequest.java
 │       │   └── UpdateProductRequest.java
-│       └── port/                     # Portas da arquitetura hexagonal
-│           ├── in/                   # Portas de entrada (casos de uso)
-│           │   └── ProductManagementUseCase.java
-│           └── out/                  # Portas de saída
-│               └── ProductPersistencePort.java
+│       ├── usecase/                  # Interfaces de casos de uso
+│       │   └── ProductManagementUseCase.java
+│       └── repository/               # Interfaces de repositório
+│           └── ProductRepository.java
 └── infrastructure/                   # Módulo de Infraestrutura
     ├── pom.xml
     └── src/main/
@@ -51,13 +48,13 @@ microservice-ddd-hexagonal/
         │   ├── configuration/
         │   │   └── ApplicationConfiguration.java
         │   └── adapter/
-        │       ├── persistence/              # Adaptadores de persistência
-        │       │   ├── ProductJpaEntity.java
-        │       │   ├── ProductJpaRepository.java
-        │       │   └── ProductRepositoryImpl.java
-        │       └── web/                      # Adaptadores web
-        │           ├── ProductController.java
-        │           └── ProductUseCaseAdapter.java
+        │       ├── web/                      # Adaptadores web
+        │       │   ├── ProductController.java
+        │       │   └── ProductUseCaseAdapter.java
+        │       └── persistence/              # Implementações de persistência
+        │           ├── ProductJpaEntity.java
+        │           ├── ProductJpaRepository.java
+        │           └── ProductRepositoryImpl.java
         └── resources/
             ├── application.yml               # Configurações de desenvolvimento
             ├── application-prod.yml          # Configurações de produção
@@ -201,15 +198,15 @@ Infraestrutura ──► Aplicação ──► Domínio
 - **`ProductStatus`**: Enum que representa estados válidos do produto
 - Características: imutáveis, comparados por valor, não possuem identidade
 
-**3. Repository Pattern**
-- **Interface `ProductRepository`**: Definida no domínio, abstrai persistência
+**3. Repository Pattern (Standard Interface & Implementation)**
+- **Interface `ProductRepository`**: Definida na aplicação, abstrai persistência
 - **Implementação `ProductRepositoryImpl`**: Na infraestrutura, implementa detalhes técnicos
-- Mantém o domínio livre de dependências externas
+- Mantém o domínio completamente livre de dependências externas
 
 **4. Domain Services**
-- **`ProductDomainService`**: Lógica de domínio que não pertence naturalmente a uma entidade
-- Coordena operações entre múltiplas entidades
-- Mantém regras de negócio complexas
+- **`ProductDomainService`**: Lógica de domínio pura que não pertence naturalmente a uma entidade
+- Coordena operações entre múltiplas entidades com dados fornecidos como parâmetros
+- Mantém regras de negócio complexas sem dependências externas
 
 **5. Application Services**
 - **`ProductApplicationService`**: Orquestra casos de uso e coordena operações
@@ -228,7 +225,7 @@ Infraestrutura ──► Aplicação ──► Domínio
 - Independente de como será chamado (REST, GraphQL, etc.)
 
 **2. Outbound Ports (Portas de Saída)**
-- **`ProductPersistencePort`**: Define contratos para persistência
+- **`ProductRepository`**: Define contratos para persistência
 - Abstrai detalhes de como os dados são armazenados
 - Permite trocar implementações sem afetar o domínio
 
@@ -272,12 +269,15 @@ Infraestrutura ──► Aplicação ──► Domínio
 - `Money`: Value Object para valores monetários com validações
 - `ProductStatus`: Enum representando estados do produto
 
-### 2. **Repositórios**
-- Interface `ProductRepository` no domínio
+### 2. **Repository Pattern (Padrão de Interface e Implementação)**
+- Interface `ProductRepository` na aplicação
 - Implementação `ProductRepositoryImpl` na infraestrutura
+- Domínio completamente livre de dependências de persistência
 
 ### 3. **Serviços de Domínio**
-- `ProductDomainService`: Lógica de negócio que não pertence a uma entidade específica
+- `ProductDomainService`: Lógica de negócio pura que não pertence a uma entidade específica
+- Recebe dados como parâmetros, sem dependências externas
+- Coordena operações complexas entre entidades
 
 ### 4. **Agregados**
 - `Product` como agregado raiz com regras de negócio encapsuladas
@@ -286,7 +286,7 @@ Infraestrutura ──► Aplicação ──► Domínio
 
 ### Portas (Ports)
 - **Inbound Ports**: `ProductManagementUseCase` - Define casos de uso
-- **Outbound Ports**: `ProductPersistencePort` - Define contratos de persistência
+- **Outbound Ports**: `ProductRepository` - Define contratos de persistência
 
 ### Adaptadores (Adapters)
 - **Primary Adapters**: `ProductController`, `ProductUseCaseAdapter`
@@ -294,7 +294,7 @@ Infraestrutura ──► Aplicação ──► Domínio
 
 ## Tecnologias Utilizadas
 
-- **Java 17**
+- **Java 21**
 - **Spring Boot 3.1.5**
 - **Spring Data JPA**
 - **H2 Database** (desenvolvimento)
@@ -302,10 +302,11 @@ Infraestrutura ──► Aplicação ──► Domínio
 - **Maven** (gerenciamento de dependências)
 - **Jakarta Validation** (validações)
 
+
 ## Como Executar
 
 ### Pré-requisitos
-- Java 17 ou superior
+- Java 21 ou superior
 - Maven 3.6 ou superior
 
 ### Comandos
@@ -412,10 +413,14 @@ POST /api/v1/products
 - Código organizado e bem estruturado
 - Dependências claras entre camadas
 - Princípios SOLID aplicados
+- Arquitetura facilmente validável via revisão de código
 
 ## Próximos Passos
 
+- [x] ~~Aplicar arquitetura hexagonal com portas na camada de aplicação~~
+- [x] ~~Tornar domínio completamente puro~~
 - [ ] Implementar testes unitários e de integração
+- [ ] Considerar ferramentas de validação arquitetural (ArchUnit, SonarQube, etc.)
 - [ ] Adicionar autenticação e autorização
 - [ ] Implementar eventos de domínio
 - [ ] Adicionar cache com Redis
@@ -423,3 +428,30 @@ POST /api/v1/products
 - [ ] Adicionar métricas customizadas
 - [ ] Containerização com Docker
 - [ ] CI/CD pipeline
+
+## Destaques Arquiteturais
+
+### ✅ **Arquitetura Hexagonal Completa**
+- **Domínio Puro**: Zero dependências externas, apenas Java
+- **Portas na Aplicação**: Inversão de dependência adequada
+- **Adaptadores na Infraestrutura**: Implementação de detalhes técnicos
+
+### ✅ **DDD Rigoroso**
+- **Agregado Raiz**: Product com regras de negócio encapsuladas
+- **Value Objects**: ProductId e Money imutáveis e ricos em comportamento
+- **Serviços de Domínio**: Lógica pura sem side effects
+
+### ✅ **Qualidade Arquitetural**
+- **Separação Clara**: Responsabilidades bem definidas entre camadas
+- **Testabilidade**: Domínio independente e testável
+- **Flexibilidade**: Fácil evolução e manutenção
+- **Documentação**: Arquitetura bem documentada e exemplificada
+
+### ✅ **Qualidade de Código**
+- **Separação Clara**: Responsabilidades bem definidas
+- **Testabilidade**: Domínio independente e testável
+- **Flexibilidade**: Fácil evolução e manutenção
+
+---
+
+**Este projeto serve como referência para implementação de microserviços com arquitetura limpa, princípios DDD rigorosos e separação clara de responsabilidades.**

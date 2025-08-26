@@ -1,9 +1,9 @@
-package com.example.infrastructure.adapter.persistence;
+package com.example.infrastructure.persistence;
 
 import com.example.domain.model.Product;
 import com.example.domain.model.ProductId;
 import com.example.domain.model.ProductStatus;
-import com.example.application.port.out.ProductPersistencePort;
+import com.example.application.repository.ProductRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -12,12 +12,12 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * JPA implementation of ProductPersistencePort.
- * This adapter implements the outbound port for product persistence operations.
+ * Implementation of ProductRepository interface.
+ * This class provides the concrete implementation for product persistence operations.
  * It bridges between the application layer and the persistence infrastructure.
  */
 @Repository
-public class ProductRepositoryImpl implements ProductPersistencePort {
+public class ProductRepositoryImpl implements ProductRepository {
     
     private final ProductJpaRepository jpaRepository;
     

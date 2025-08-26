@@ -11,8 +11,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  * This is the entry point for the microservice application.
  */
 @SpringBootApplication(scanBasePackages = "com.example")
-@EntityScan(basePackages = "com.example.infrastructure.adapter.persistence")
-@EnableJpaRepositories(basePackages = "com.example.infrastructure.adapter.persistence")
+@EntityScan(basePackages = "com.example.infrastructure.persistence")
+@EnableJpaRepositories(basePackages = "com.example.infrastructure.persistence")
 @EnableTransactionManagement
 public class MicroserviceApplication {
     

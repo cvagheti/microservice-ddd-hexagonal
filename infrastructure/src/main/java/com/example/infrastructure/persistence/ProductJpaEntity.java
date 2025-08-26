@@ -1,4 +1,4 @@
-package com.example.infrastructure.adapter.persistence;
+package com.example.infrastructure.persistence;
 
 import com.example.domain.model.Product;
 import com.example.domain.model.ProductId;
@@ -198,6 +198,8 @@ public class ProductJpaEntity {
                 ", currency='" + currency + '\'' +
                 ", stockQuantity=" + stockQuantity +
                 ", status=" + status +
+                ", createdAt=" + createdAt +
+                ", updatedAt=" + updatedAt +
                 '}';
     }
 }
