@@ -1,18 +1,16 @@
 package com.example.infrastructure.adapter.web;
 
-import com.example.application.dto.CreateProductRequest;
-import com.example.application.dto.ProductDto;
-import com.example.application.dto.UpdateProductRequest;
-import com.example.application.usecase.ProductManagementUseCase;
-import com.example.application.service.ProductApplicationService;
-import com.example.domain.model.Money;
-import com.example.domain.model.Product;
-import com.example.domain.model.ProductId;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
+import org.springframework.stereotype.Component;
+
+import com.example.application.service.ProductApplicationService;
+import com.example.application.usecase.ProductManagementUseCase;
+import com.example.domain.model.Money;
+import com.example.domain.model.Product;
+import com.example.domain.model.ProductId;
 
 /**
  * Use Case Adapter that implements the ProductManagementUseCase interface.

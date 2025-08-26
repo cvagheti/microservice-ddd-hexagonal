@@ -30,15 +30,19 @@ microservice-ddd-hexagonal/
 ├── application/                      # Módulo de Aplicação
 │   ├── pom.xml
 │   └── src/main/java/com/example/application/
-│       ├── service/                  # Serviços de aplicação
-│       │   └── ProductApplicationService.java
+│       ├── service/                  # Serviços de aplicação (CQRS)
+│       │   ├── ProductApplicationService.java  # Serviço principal
+│       │   ├── ProductCommandService.java      # Serviço de comandos
+│       │   └── ProductQueryService.java        # Serviço de consultas
 │       ├── dto/                      # Objetos de transferência de dados
 │       │   ├── ProductDto.java
 │       │   ├── CreateProductRequest.java
 │       │   └── UpdateProductRequest.java
-│       ├── usecase/                  # Interfaces de casos de uso
-│       │   └── ProductManagementUseCase.java
-│       └── repository/               # Interfaces de repositório
+│       ├── usecase/                  # Interfaces de casos de uso (Portas de Entrada)
+│       │   ├── ProductManagementUseCase.java   # Casos de uso completos
+│       │   ├── ProductCommandUseCase.java      # Comandos (CQRS)
+│       │   └── ProductQueryUseCase.java        # Consultas (CQRS)
+│       └── repository/               # Interfaces de repositório (Portas de Saída)
 │           └── ProductRepository.java
 └── infrastructure/                   # Módulo de Infraestrutura
     ├── pom.xml
@@ -48,10 +52,12 @@ microservice-ddd-hexagonal/
         │   ├── configuration/
         │   │   └── ApplicationConfiguration.java
         │   └── adapter/
-        │       ├── web/                      # Adaptadores web
+        │       ├── web/                      # Adaptadores web (Adaptadores Primários)
         │       │   ├── ProductController.java
-        │       │   └── ProductUseCaseAdapter.java
-        │       └── persistence/              # Implementações de persistência
+        │       │   ├── ProductUseCaseAdapter.java    # Adaptador principal
+        │       │   ├── ProductCommandAdapter.java    # Adaptador de comandos
+        │       │   └── ProductQueryAdapter.java      # Adaptador de consultas
+        │       └── persistence/              # Adaptadores de persistência (Adaptadores Secundários)
         │           ├── ProductJpaEntity.java
         │           ├── ProductJpaRepository.java
         │           └── ProductRepositoryImpl.java
@@ -65,7 +71,7 @@ microservice-ddd-hexagonal/
 
 ### Diagrama de Dependências Maven
 
-```mermaid
+```
 graph TB
     Root["microservice-ddd-hexagonal<br/>(POM Pai)"] --> Domain["domain<br/>(JAR)"]
     Root --> Application["application<br/>(JAR)"]
@@ -81,42 +87,72 @@ graph TB
     style Infrastructure fill:#fce4ec
 ```
 
-### Fluxo de Dependências (Arquitetura Hexagonal)
+### Fluxo de Dependências (Arquitetura Hexagonal + CQRS)
 
-```mermaid
+```
 graph LR
-    subgraph "Infrastructure Layer"
+    subgraph "Infrastructure Layer (Adaptadores)"
         REST["REST Controller<br/>ProductController"]
+        UseCaseAdapter["Use Case Adapter<br/>ProductUseCaseAdapter"]
+        CommandAdapter["Command Adapter<br/>ProductCommandAdapter"]
+        QueryAdapter["Query Adapter<br/>ProductQueryAdapter"]
         Persistence["JPA Repository<br/>ProductRepositoryImpl"]
         Config["Spring Configuration<br/>ApplicationConfiguration"]
     end
     
-    subgraph "Application Layer"
-        Service["Application Service<br/>ProductApplicationService"]
-        UseCase["Use Case Port<br/>ProductManagementUseCase"]
+    subgraph "Application Layer (Orquestração)"
+        AppService["Application Service<br/>ProductApplicationService"]
+        CommandService["Command Service<br/>ProductCommandService"]
+        QueryService["Query Service<br/>ProductQueryService"]
+        ManagementUseCase["Management Use Case<br/>ProductManagementUseCase"]
+        CommandUseCase["Command Use Case<br/>ProductCommandUseCase"]
+        QueryUseCase["Query Use Case<br/>ProductQueryUseCase"]
         Repository["Repository Interface<br/>ProductRepository"]
         DTO["DTOs<br/>ProductDto, Requests"]
     end
     
-    subgraph "Domain Layer"
+    subgraph "Domain Layer (Regras de Negócio)"
         Entity["Aggregate Root<br/>Product"]
-        ValueObject["Value Objects<br/>ProductId, Money"]
+        ValueObject["Value Objects<br/>ProductId, Money, Status"]
         DomainService["Domain Service<br/>ProductDomainService"]
     end
     
-    REST --> UseCase
-    UseCase --> Service
-    Service --> DomainService
-    Service --> Repository
+    REST --> UseCaseAdapter
+    REST --> CommandAdapter
+    REST --> QueryAdapter
+    
+    UseCaseAdapter --> ManagementUseCase
+    CommandAdapter --> CommandUseCase
+    QueryAdapter --> QueryUseCase
+    
+    ManagementUseCase --> AppService
+    CommandUseCase --> CommandService
+    QueryUseCase --> QueryService
+    
+    AppService --> DomainService
+    CommandService --> DomainService
+    QueryService --> Repository
+    
+    AppService --> Repository
+    CommandService --> Repository
     Persistence --> Repository
-    Service --> Entity
+    
+    AppService --> Entity
+    CommandService --> Entity
     Entity --> ValueObject
     
     style REST fill:#ffcdd2
+    style UseCaseAdapter fill:#ffcdd2
+    style CommandAdapter fill:#ffcdd2
+    style QueryAdapter fill:#ffcdd2
     style Persistence fill:#ffcdd2
     style Config fill:#ffcdd2
-    style Service fill:#fff3e0
-    style UseCase fill:#fff3e0
+    style AppService fill:#fff3e0
+    style CommandService fill:#fff3e0
+    style QueryService fill:#fff3e0
+    style ManagementUseCase fill:#fff3e0
+    style CommandUseCase fill:#fff3e0
+    style QueryUseCase fill:#fff3e0
     style DTO fill:#fff3e0
     style Entity fill:#c8e6c9
     style ValueObject fill:#c8e6c9
@@ -181,6 +217,29 @@ Infraestrutura ──► Aplicação ──► Domínio
 
 ## Conceitos Implementados
 
+### Command Query Responsibility Segregation (CQRS)
+
+**CQRS** é um padrão arquitetural que separa as operações de leitura (queries) das operações de escrita (commands), permitindo otimizações específicas para cada tipo de operação.
+
+#### **Implementação CQRS:**
+
+**1. Command Side (Lado dos Comandos)**
+- **`ProductCommandUseCase`**: Interface para operações de escrita
+- **`ProductCommandService`**: Implementação de serviços de comando
+- **`ProductCommandAdapter`**: Adaptador específico para comandos
+- Operações: criar, atualizar, adicionar/remover estoque, ativar/desativar
+
+**2. Query Side (Lado das Consultas)**
+- **`ProductQueryUseCase`**: Interface para operações de leitura
+- **`ProductQueryService`**: Implementação de serviços de consulta
+- **`ProductQueryAdapter`**: Adaptador específico para consultas
+- Operações: buscar por ID, listar todos, buscar por nome, estatísticas
+
+**3. Unified Interface**
+- **`ProductManagementUseCase`**: Interface unificada que combina comandos e consultas
+- **`ProductUseCaseAdapter`**: Adaptador que implementa a interface unificada
+- **`ProductApplicationService`**: Serviço principal que coordena ambos os lados
+
 ### Domain-Driven Design (DDD)
 
 **DDD** é uma abordagem de desenvolvimento de software que coloca o foco no domínio central e na lógica de domínio, baseando o design em um modelo do domínio.
@@ -189,29 +248,34 @@ Infraestrutura ──► Aplicação ──► Domínio
 
 **1. Aggregate Root (Agregado Raiz)**
 - **`Product`**: Entidade principal que mantém consistência e controla acesso ao agregado
-- Encapsula regras de negócio e invariantes
+- Encapsula regras de negócio e invariantes (validações de estoque, transições de estado)
 - Único ponto de entrada para modificações no agregado
+- Controla o ciclo de vida e estado do produto
 
 **2. Value Objects**
 - **`ProductId`**: Identifica unicamente um produto, imutável e sem identidade própria
 - **`Money`**: Representa valores monetários com validações, encapsula moeda e valor
-- **`ProductStatus`**: Enum que representa estados válidos do produto
+- **`ProductStatus`**: Enum que representa estados válidos do produto (ACTIVE, INACTIVE, DISCONTINUED)
 - Características: imutáveis, comparados por valor, não possuem identidade
 
-**3. Repository Interface (in Application Layer)**
+**3. Repository Interface (Porta de Saída)**
 - **Interface `ProductRepository`**: Definida na camada de aplicação, abstrai persistência
 - **Implementação `ProductRepositoryImpl`**: Na infraestrutura, implementa detalhes técnicos
 - Mantém o domínio completamente livre de dependências externas
+- Implementa padrão Repository com operações de CRUD e consultas específicas
 
 **4. Domain Services**
 - **`ProductDomainService`**: Lógica de domínio pura que não pertence naturalmente a uma entidade
 - Coordena operações entre múltiplas entidades com dados fornecidos como parâmetros
 - Mantém regras de negócio complexas sem dependências externas
+- Valida regras de negócio como unicidade de nome e consistência de dados
 
-**5. Application Services**
-- **`ProductApplicationService`**: Orquestra casos de uso e coordena operações
+**5. Application Services (CQRS)**
+- **`ProductApplicationService`**: Orquestra casos de uso e coordena operações completas
+- **`ProductCommandService`**: Especializado em operações de escrita (comandos)
+- **`ProductQueryService`**: Especializado em operações de leitura (consultas)
 - Não contém lógica de negócio, apenas orquestração
-- Ponto de entrada para operações de aplicação
+- Implementa padrão CQRS (Command Query Responsibility Segregation)
 
 ### Arquitetura Hexagonal (Ports & Adapters)
 
@@ -220,23 +284,29 @@ Infraestrutura ──► Aplicação ──► Domínio
 #### **Conceitos Hexagonais Implementados:**
 
 **1. Inbound Ports (Portas de Entrada)**
-- **`ProductManagementUseCase`**: Define contratos dos casos de uso
+- **`ProductManagementUseCase`**: Define contratos dos casos de uso completos
+- **`ProductCommandUseCase`**: Define contratos para operações de escrita (CQRS)
+- **`ProductQueryUseCase`**: Define contratos para operações de leitura (CQRS)
 - Representa o que a aplicação pode fazer
-- Independente de como será chamado (REST, GraphQL, etc.)
+- Independente de como será chamado (REST, GraphQL, messaging, etc.)
 
 **2. Outbound Ports (Portas de Saída)**
 - **`ProductRepository`**: Define contratos para persistência
 - Abstrai detalhes de como os dados são armazenados
 - Permite trocar implementações sem afetar o domínio
+- Define operações de busca, salvamento e exclusão
 
 **3. Primary Adapters (Adaptadores Primários)**
 - **`ProductController`**: Adaptador REST que recebe requisições HTTP
-- **`ProductUseCaseAdapter`**: Implementa as portas de entrada
+- **`ProductUseCaseAdapter`**: Implementa casos de uso completos
+- **`ProductCommandAdapter`**: Implementa especificamente comandos (CQRS)
+- **`ProductQueryAdapter`**: Implementa especificamente consultas (CQRS)
 - Traduzem requisições externas para chamadas do domínio
 
 **4. Secondary Adapters (Adaptadores Secundários)**
 - **`ProductRepositoryImpl`**: Implementa persistência com JPA
 - **`ProductJpaEntity`**: Entidade JPA para mapeamento objeto-relacional
+- **`ProductJpaRepository`**: Interface Spring Data para operações de banco
 - Implementam as portas de saída com tecnologias específicas
 
 ### Benefícios da Implementação
@@ -264,43 +334,156 @@ Infraestrutura ──► Aplicação ──► Domínio
 ## Princípios DDD Implementados
 
 ### 1. **Entidades e Value Objects**
-- `Product`: Agregado raiz com identidade e ciclo de vida próprio
-- `ProductId`: Value Object para identificação única
-- `Money`: Value Object para valores monetários com validações
-- `ProductStatus`: Enum representando estados do produto
+- **`Product`**: Agregado raiz com identidade e ciclo de vida próprio
+  - Encapsula regras de negócio (validações de estoque, transições de estado)
+  - Controla invariantes do agregado
+  - Métodos de negócio: `addStock()`, `removeStock()`, `activate()`, `deactivate()`
+- **`ProductId`**: Value Object para identificação única
+  - Geração automática via UUID
+  - Validações de formato e não-nulidade
+- **`Money`**: Value Object para valores monetários com validações
+  - Encapsula valor e moeda
+  - Validações de valores positivos
+- **`ProductStatus`**: Enum representando estados do produto (ACTIVE, INACTIVE, DISCONTINUED)
 
-### 2. **Repository Interface (in Application Layer)**
-- Interface `ProductRepository` na camada de aplicação
-- Implementação `ProductRepositoryImpl` na infraestrutura
+### 2. **Repository Interface (Porta de Saída)**
+- Interface **`ProductRepository`** na camada de aplicação
+- Implementação **`ProductRepositoryImpl`** na infraestrutura
 - Domínio completamente livre de dependências de persistência
+- Operações especializadas: busca por nome, produtos ativos, estatísticas
 
 ### 3. **Serviços de Domínio**
-- `ProductDomainService`: Lógica de negócio pura que não pertence a uma entidade específica
+- **`ProductDomainService`**: Lógica de negócio pura que não pertence a uma entidade específica
+  - Validação de unicidade de nomes
+  - Regras de negócio para criação e atualização
+  - Cálculo de estatísticas de inventário
 - Recebe dados como parâmetros, sem dependências externas
 - Coordena operações complexas entre entidades
 
 ### 4. **Agregados**
-- `Product` como agregado raiz com regras de negócio encapsuladas
+- **`Product`** como agregado raiz com regras de negócio encapsuladas
+  - Controla consistência interna
+  - Define limites transacionais
+  - Único ponto de entrada para modificações
 
 ## Arquitetura Hexagonal
 
 ### Portas (Ports)
-- **Inbound Ports**: `ProductManagementUseCase` - Define casos de uso
-- **Outbound Ports**: `ProductRepository` - Define contratos de persistência
+
+**Inbound Ports (Portas de Entrada)**
+- **`ProductManagementUseCase`**: Define casos de uso completos (interface unificada)
+- **`ProductCommandUseCase`**: Define operações de escrita (CQRS)
+- **`ProductQueryUseCase`**: Define operações de leitura (CQRS)
+
+**Outbound Ports (Portas de Saída)**
+- **`ProductRepository`**: Define contratos de persistência
+- Abstrai completamente os detalhes de implementação
 
 ### Adaptadores (Adapters)
-- **Primary Adapters**: `ProductController`, `ProductUseCaseAdapter`
-- **Secondary Adapters**: `ProductRepositoryImpl`
+
+**Primary Adapters (Adaptadores Primários)**
+- **`ProductController`**: Controlador REST principal
+- **`ProductUseCaseAdapter`**: Implementa interface unificada
+- **`ProductCommandAdapter`**: Implementa operações de comando
+- **`ProductQueryAdapter`**: Implementa operações de consulta
+
+**Secondary Adapters (Adaptadores Secundários)**
+- **`ProductRepositoryImpl`**: Implementação JPA do repositório
+- **`ProductJpaRepository`**: Interface Spring Data
+- **`ProductJpaEntity`**: Entidade de persistência
 
 ## Tecnologias Utilizadas
 
-- **Java 21**
-- **Spring Boot 3.1.5**
-- **Spring Data JPA**
-- **H2 Database** (desenvolvimento)
-- **PostgreSQL** (produção)
-- **Maven** (gerenciamento de dependências)
-- **Jakarta Validation** (validações)
+- **Java 21** - LTS version with modern features
+- **Spring Boot 3.1.5** - Framework principal
+- **Spring Data JPA** - Camada de persistência
+- **Spring Web** - REST APIs
+- **Spring Validation** - Validações
+- **H2 Database** (desenvolvimento) - Banco em memória
+- **PostgreSQL** (produção) - Banco relacional
+- **Maven** (gerenciamento de dependências) - Build tool
+- **Jakarta Validation** - Bean validation
+- **Spring Boot Actuator** - Monitoring e health checks
+
+## Implementação CQRS Detalhada
+
+### Estrutura de Comandos (Write Side)
+
+**Responsabilidade**: Operações que modificam o estado do sistema
+
+```
+graph LR
+    Request["HTTP Request"] --> Controller["ProductController"]
+    Controller --> CommandAdapter["ProductCommandAdapter"]
+    CommandAdapter --> CommandUseCase["ProductCommandUseCase"]
+    CommandUseCase --> CommandService["ProductCommandService"]
+    CommandService --> Domain["Product + DomainService"]
+    CommandService --> Repository["ProductRepository"]
+    
+    style Request fill:#ffebee
+    style Controller fill:#ffcdd2
+    style CommandAdapter fill:#ffcdd2
+    style CommandUseCase fill:#fff3e0
+    style CommandService fill:#fff3e0
+    style Domain fill:#c8e6c9
+    style Repository fill:#fff3e0
+```
+
+**Componentes do Command Side:**
+- **`ProductCommandUseCase`**: Interface que define operações de escrita
+- **`ProductCommandAdapter`**: Implementação do adaptador para comandos
+- **`ProductCommandService`**: Serviço especializado em operações de escrita
+- **Operações**: `createProduct`, `updateProduct`, `addStock`, `removeStock`, `activateProduct`, `deactivateProduct`, `deleteProduct`
+
+### Estrutura de Consultas (Read Side)
+
+**Responsabilidade**: Operações que leem dados sem modificar o estado
+
+```
+graph LR
+    Request["HTTP Request"] --> Controller["ProductController"]
+    Controller --> QueryAdapter["ProductQueryAdapter"]
+    QueryAdapter --> QueryUseCase["ProductQueryUseCase"]
+    QueryUseCase --> QueryService["ProductQueryService"]
+    QueryService --> Repository["ProductRepository"]
+    
+    style Request fill:#e8f5e8
+    style Controller fill:#c8e6c9
+    style QueryAdapter fill:#c8e6c9
+    style QueryUseCase fill:#e1f5fe
+    style QueryService fill:#e1f5fe
+    style Repository fill:#e1f5fe
+```
+
+**Componentes do Query Side:**
+- **`ProductQueryUseCase`**: Interface que define operações de leitura
+- **`ProductQueryAdapter`**: Implementação do adaptador para consultas
+- **`ProductQueryService`**: Serviço especializado em operações de leitura (read-only)
+- **Operações**: `findProductById`, `findAllProducts`, `findProductsByName`, `findActiveProducts`, `getInventoryStatistics`
+
+### Interface Unificada
+
+**`ProductManagementUseCase`** combina comandos e consultas em uma interface única:
+- Implementada por **`ProductUseCaseAdapter`**
+- Coordenada por **`ProductApplicationService`**
+- Permite uso simples quando separação CQRS não é necessária
+
+### Benefícios da Implementação CQRS
+
+1. **Performance Otimizada**
+   - Consultas podem usar views otimizadas
+   - Comandos focam em consistência e validações
+   - Cache pode ser aplicado especificamente nas consultas
+
+2. **Escalabilidade**
+   - Read e Write sides podem escalar independentemente
+   - Diferentes bancos para leitura e escrita (se necessário)
+   - Load balancing específico por tipo de operação
+
+3. **Manutenção**
+   - Código especializado por responsabilidade
+   - Testes mais focados e eficientes
+   - Evolution paths independentes
 
 
 ## Como Executar
@@ -311,7 +494,7 @@ Infraestrutura ──► Aplicação ──► Domínio
 
 ### Comandos
 
-```bash
+```
 # Compilar o projeto
 mvn clean compile
 
@@ -336,26 +519,40 @@ docker run -p 8080:8080 microservice-ddd
 
 ## API Endpoints
 
+O sistema oferece três níveis de acesso aos casos de uso através da Arquitetura Hexagonal com CQRS:
+
+### 1. Interface Unificada (ProductManagementUseCase)
+**Adaptador**: `ProductUseCaseAdapter`  
+**Quando usar**: Operações completas que podem incluir comandos e consultas
+
+### 2. Interface de Comandos (ProductCommandUseCase)
+**Adaptador**: `ProductCommandAdapter`  
+**Quando usar**: Operações de escrita especializadas com foco em performance
+
+### 3. Interface de Consultas (ProductQueryUseCase)
+**Adaptador**: `ProductQueryAdapter`  
+**Quando usar**: Operações de leitura especializadas, otimizadas para consultas
+
 ### Produtos
 
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| GET | `/api/v1/products` | Listar todos os produtos |
-| GET | `/api/v1/products/{id}` | Buscar produto por ID |
-| GET | `/api/v1/products/active` | Listar produtos ativos |
-| GET | `/api/v1/products/search?name={name}` | Buscar produtos por nome |
-| POST | `/api/v1/products` | Criar novo produto |
-| PUT | `/api/v1/products/{id}` | Atualizar produto |
-| PATCH | `/api/v1/products/{id}/stock/add?quantity={qty}` | Adicionar estoque |
-| PATCH | `/api/v1/products/{id}/stock/remove?quantity={qty}` | Remover estoque |
-| PATCH | `/api/v1/products/{id}/activate` | Ativar produto |
-| PATCH | `/api/v1/products/{id}/deactivate` | Desativar produto |
-| DELETE | `/api/v1/products/{id}` | Excluir produto |
-| GET | `/api/v1/products/statistics` | Estatísticas do inventário |
+| Método | Endpoint | Descrição | Adaptador Usado |
+|--------|----------|-----------|----------------|
+| GET | `/api/v1/products` | Listar todos os produtos | Query |
+| GET | `/api/v1/products/{id}` | Buscar produto por ID | Query |
+| GET | `/api/v1/products/active` | Listar produtos ativos | Query |
+| GET | `/api/v1/products/search?name={name}` | Buscar produtos por nome | Query |
+| POST | `/api/v1/products` | Criar novo produto | Command |
+| PUT | `/api/v1/products/{id}` | Atualizar produto | Command |
+| PATCH | `/api/v1/products/{id}/stock/add?quantity={qty}` | Adicionar estoque | Command |
+| PATCH | `/api/v1/products/{id}/stock/remove?quantity={qty}` | Remover estoque | Command |
+| PATCH | `/api/v1/products/{id}/activate` | Ativar produto | Command |
+| PATCH | `/api/v1/products/{id}/deactivate` | Desativar produto | Command |
+| DELETE | `/api/v1/products/{id}` | Excluir produto | Command |
+| GET | `/api/v1/products/statistics` | Estatísticas do inventário | Query |
 
 ### Exemplo de Requisição
 
-```json
+```
 POST /api/v1/products
 {
   "name": "iPhone 15 Pro",
@@ -394,40 +591,76 @@ POST /api/v1/products
 
 ## Benefícios da Arquitetura
 
-### 1. **Separação de Responsabilidades**
-- Domínio: Regras de negócio puras
-- Aplicação: Orquestração de casos de uso
-- Infraestrutura: Detalhes técnicos
+### 1. **Separação de Responsabilidades (CQRS)**
+- **Domínio**: Regras de negócio puras, zero dependências externas
+- **Aplicação**: Orquestração de casos de uso com CQRS
+  - Comandos: Operações de escrita otimizadas
+  - Consultas: Operações de leitura otimizadas
+  - Interface unificada: Casos de uso completos
+- **Infraestrutura**: Detalhes técnicos e frameworks
 
-### 2. **Testabilidade**
-- Domínio independente de frameworks
-- Fácil criação de testes unitários
-- Mocks simples para dependências externas
+### 2. **Testabilidade Aprimorada**
+- Domínio independente de frameworks (testes unitários puros)
+- Serviços de comando e consulta testáveis separadamente
+- Fácil criação de mocks para dependências externas
+- Testes de integração focados por responsabilidade
 
-### 3. **Flexibilidade**
-- Fácil troca de tecnologias (banco, framework web)
+### 3. **Flexibilidade Tecnológica**
+- Fácil troca de banco de dados, frameworks web, etc.
 - Adição de novos adaptadores sem impacto no domínio
 - Evolução independente dos módulos
+- Suporte a diferentes interfaces (REST, GraphQL, messaging)
 
-### 4. **Manutenibilidade**
+### 4. **Escalabilidade e Performance**
+- Comandos e consultas podem ser otimizados independentemente
+- Possibilidade de usar diferentes stores para leitura e escrita
+- Adaptadores especializados para diferentes necessidades
+- Cache pode ser aplicado especificamente nas consultas
+
+### 5. **Manutenibilidade**
 - Código organizado e bem estruturado
 - Dependências claras entre camadas
 - Princípios SOLID aplicados
 - Arquitetura facilmente validável via revisão de código
+- Separação clara entre operações de leitura e escrita
 
 ## Próximos Passos
 
 - [x] ~~Aplicar arquitetura hexagonal com portas na camada de aplicação~~
 - [x] ~~Tornar domínio completamente puro~~
-- [ ] Implementar testes unitários e de integração
-- [ ] Considerar ferramentas de validação arquitetural (ArchUnit, SonarQube, etc.)
-- [ ] Adicionar autenticação e autorização
-- [ ] Implementar eventos de domínio
-- [ ] Adicionar cache com Redis
-- [ ] Implementar circuit breaker
-- [ ] Adicionar métricas customizadas
-- [ ] Containerização com Docker
-- [ ] CI/CD pipeline
+- [x] ~~Implementar padrão CQRS (Command Query Responsibility Segregation)~~
+- [x] ~~Criar adaptadores especializados para comandos e consultas~~
+- [x] ~~Separar serviços de aplicação por responsabilidade~~
+- [ ] Implementar testes unitários abrangentes
+  - [ ] Testes de domínio (entidades, value objects, serviços)
+  - [ ] Testes de aplicação (casos de uso, serviços CQRS)
+  - [ ] Testes de integração (adaptadores, repositórios)
+- [ ] Considerar ferramentas de validação arquitetural
+  - [ ] ArchUnit para enforce architectural rules
+  - [ ] SonarQube para qualidade de código
+  - [ ] Fitness functions para architectural governance
+- [ ] Implementar segurança e autenticação
+  - [ ] JWT authentication
+  - [ ] Authorization com Spring Security
+  - [ ] Rate limiting e throttling
+- [ ] Adicionar eventos de domínio
+  - [ ] Domain events para comunicação entre agregados
+  - [ ] Event sourcing para auditoria
+  - [ ] Integration events para comunicação entre microserviços
+- [ ] Otimizações de performance
+  - [ ] Cache com Redis para consultas
+  - [ ] Connection pooling otimizado
+  - [ ] Query optimization e indexação
+- [ ] Resiliência e monitoring
+  - [ ] Circuit breaker com Resilience4j
+  - [ ] Health checks customizados
+  - [ ] Métricas customizadas com Micrometer
+  - [ ] Distributed tracing com Sleuth/Zipkin
+- [ ] Containerização e deploy
+  - [ ] Docker multi-stage builds
+  - [ ] Kubernetes deployment manifests
+  - [ ] CI/CD pipeline com GitHub Actions
+  - [ ] Automated testing in pipeline
 
 ## Destaques Arquiteturais
 
@@ -435,23 +668,32 @@ POST /api/v1/products
 - **Domínio Puro**: Zero dependências externas, apenas Java
 - **Portas na Aplicação**: Inversão de dependência adequada
 - **Adaptadores na Infraestrutura**: Implementação de detalhes técnicos
+- **Múltiplas Interfaces**: Suporte a diferentes tipos de adapters
+
+### ✅ **CQRS (Command Query Responsibility Segregation)**
+- **Separação Clara**: Comandos vs. Consultas com adapters especializados
+- **Otimização Independente**: Performance diferenciada para leitura e escrita
+- **Interface Unificada**: `ProductManagementUseCase` combina ambos os lados
+- **Serviços Especializados**: `CommandService` e `QueryService` focados
 
 ### ✅ **DDD Rigoroso**
-- **Agregado Raiz**: Product com regras de negócio encapsuladas
-- **Value Objects**: ProductId e Money imutáveis e ricos em comportamento
+- **Agregado Raiz**: `Product` com regras de negócio encapsuladas
+- **Value Objects**: `ProductId`, `Money` e `ProductStatus` imutáveis e ricos
 - **Serviços de Domínio**: Lógica pura sem side effects
+- **Repository Pattern**: Abstração completa de persistência
 
 ### ✅ **Qualidade Arquitetural**
 - **Separação Clara**: Responsabilidades bem definidas entre camadas
-- **Testabilidade**: Domínio independente e testável
+- **Testabilidade**: Domínio independente e testável, CQRS facilita testes
 - **Flexibilidade**: Fácil evolução e manutenção
 - **Documentação**: Arquitetura bem documentada e exemplificada
 
-### ✅ **Qualidade de Código**
-- **Separação Clara**: Responsabilidades bem definidas
-- **Testabilidade**: Domínio independente e testável
-- **Flexibilidade**: Fácil evolução e manutenção
+### ✅ **Padrões Avançados**
+- **Dependency Inversion**: Todas as dependências apontam para dentro
+- **Single Responsibility**: Cada classe tem uma responsabilidade única
+- **Open/Closed**: Fácil extensão sem modificação
+- **Interface Segregation**: Interfaces pequenas e específicas
 
 ---
 
-**Este projeto serve como referência para implementação de microserviços com arquitetura limpa, princípios DDD rigorosos e separação clara de responsabilidades.**
+**Este projeto serve como referência para implementação de microserviços com arquitetura limpa, princípios DDD rigorosos, padrão CQRS e separação clara de responsabilidades. A implementação demonstra como combinar Arquitetura Hexagonal com Domain-Driven Design de forma prática e eficiente.**
