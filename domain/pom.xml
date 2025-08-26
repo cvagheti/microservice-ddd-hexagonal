@@ -15,7 +15,7 @@
     <packaging>jar</packaging>
 
     <name>Domain Module</name>
-    <description>Domain layer containing entities, value objects, domain services and repository interfaces</description>
+    <description>Domain layer containing entities, value objects and domain services - completely pure domain logic</description>
 
     <dependencies>
         <!-- Jakarta Validation for domain validation -->

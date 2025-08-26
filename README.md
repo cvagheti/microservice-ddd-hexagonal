@@ -94,13 +94,13 @@ graph LR
     subgraph "Application Layer"
         Service["Application Service<br/>ProductApplicationService"]
         UseCase["Use Case Port<br/>ProductManagementUseCase"]
+        Repository["Repository Interface<br/>ProductRepository"]
         DTO["DTOs<br/>ProductDto, Requests"]
     end
     
     subgraph "Domain Layer"
         Entity["Aggregate Root<br/>Product"]
         ValueObject["Value Objects<br/>ProductId, Money"]
-        Repository["Repository Interface<br/>ProductRepository"]
         DomainService["Domain Service<br/>ProductDomainService"]
     end
     
@@ -120,8 +120,8 @@ graph LR
     style DTO fill:#fff3e0
     style Entity fill:#c8e6c9
     style ValueObject fill:#c8e6c9
-    style Repository fill:#c8e6c9
     style DomainService fill:#c8e6c9
+    style Repository fill:#fff3e0
 ```
 
 ### Regras de Dependência
@@ -198,8 +198,8 @@ Infraestrutura ──► Aplicação ──► Domínio
 - **`ProductStatus`**: Enum que representa estados válidos do produto
 - Características: imutáveis, comparados por valor, não possuem identidade
 
-**3. Repository Pattern (Standard Interface & Implementation)**
-- **Interface `ProductRepository`**: Definida na aplicação, abstrai persistência
+**3. Repository Interface (in Application Layer)**
+- **Interface `ProductRepository`**: Definida na camada de aplicação, abstrai persistência
 - **Implementação `ProductRepositoryImpl`**: Na infraestrutura, implementa detalhes técnicos
 - Mantém o domínio completamente livre de dependências externas
 
@@ -269,8 +269,8 @@ Infraestrutura ──► Aplicação ──► Domínio
 - `Money`: Value Object para valores monetários com validações
 - `ProductStatus`: Enum representando estados do produto
 
-### 2. **Repository Pattern (Padrão de Interface e Implementação)**
-- Interface `ProductRepository` na aplicação
+### 2. **Repository Interface (in Application Layer)**
+- Interface `ProductRepository` na camada de aplicação
 - Implementação `ProductRepositoryImpl` na infraestrutura
 - Domínio completamente livre de dependências de persistência
 
