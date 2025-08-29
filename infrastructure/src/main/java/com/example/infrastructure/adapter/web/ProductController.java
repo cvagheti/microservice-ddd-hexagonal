@@ -3,7 +3,8 @@ package com.example.infrastructure.adapter.web;
 import com.example.application.dto.CreateProductRequest;
 import com.example.application.dto.ProductDto;
 import com.example.application.dto.UpdateProductRequest;
-import com.example.application.usecase.ProductManagementUseCase;
+import com.example.application.usecase.ProductCommandUseCase;
+import com.example.application.usecase.ProductQueryUseCase;
 import com.example.domain.model.Money;
 import com.example.domain.model.Product;
 import com.example.domain.model.ProductId;
@@ -18,14 +19,15 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * REST Controller for Product Management.
- * This web controller implements the REST API interface for product operations.
- * It translates HTTP requests to use case calls and handles HTTP responses.
+ * REST Controller for Product Management with CQRS pattern.
+ * This web controller implements the REST API interface for product operations
+ * using separate command and query interfaces following CQRS principles.
  * 
  * Architectural Role: Web Controller (Primary Adapter in Hexagonal Architecture)
  * - Receives HTTP requests from external clients
  * - Converts request data to domain objects
- * - Delegates business operations to use cases
+ * - Delegates command operations to ProductCommandUseCase
+ * - Delegates query operations to ProductQueryUseCase
  * - Converts domain responses to DTOs for HTTP responses
  */
 @RestController
@@ -33,12 +35,18 @@ import java.util.stream.Collectors;
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class ProductController {
     
-    private final ProductManagementUseCase productManagementUseCase;
+    private final ProductCommandUseCase productCommandUseCase;
+    private final ProductQueryUseCase productQueryUseCase;
     
-    public ProductController(ProductManagementUseCase productManagementUseCase) {
-        this.productManagementUseCase = Objects.requireNonNull(productManagementUseCase, 
-                "Product management use case cannot be null");
+    public ProductController(ProductCommandUseCase productCommandUseCase,
+                            ProductQueryUseCase productQueryUseCase) {
+        this.productCommandUseCase = Objects.requireNonNull(productCommandUseCase, 
+                "Product command use case cannot be null");
+        this.productQueryUseCase = Objects.requireNonNull(productQueryUseCase, 
+                "Product query use case cannot be null");
     }
+    
+    // Command operations (write)
     
     /**
      * Create a new product.
@@ -50,7 +58,7 @@ public class ProductController {
     public ResponseEntity<ProductDto> createProduct(@Valid @RequestBody CreateProductRequest request) {
         try {
             Money price = Money.of(request.getPrice(), request.getCurrency());
-            Product createdProduct = productManagementUseCase.createProduct(
+            Product createdProduct = productCommandUseCase.createProduct(
                     request.getName(),
                     request.getDescription(),
                     price,
@@ -62,6 +70,8 @@ public class ProductController {
         }
     }
     
+    // Query operations (read)
+    
     /**
      * Get a product by ID.
      * 
@@ -71,7 +81,7 @@ public class ProductController {
     @GetMapping("/{productId}")
     public ResponseEntity<ProductDto> getProduct(@PathVariable String productId) {
         ProductId id = ProductId.of(productId);
-        Optional<Product> product = productManagementUseCase.findProductById(id);
+        Optional<Product> product = productQueryUseCase.findProductById(id);
         return product.map(p -> ResponseEntity.ok(ProductDto.fromDomain(p)))
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -83,7 +93,7 @@ public class ProductController {
      */
     @GetMapping
     public ResponseEntity<List<ProductDto>> getAllProducts() {
-        List<Product> products = productManagementUseCase.findAllProducts();
+        List<Product> products = productQueryUseCase.findAllProducts();
         List<ProductDto> productDtos = products.stream()
                 .map(ProductDto::fromDomain)
                 .collect(Collectors.toList());
@@ -97,7 +107,7 @@ public class ProductController {
      */
     @GetMapping("/active")
     public ResponseEntity<List<ProductDto>> getActiveProducts() {
-        List<Product> products = productManagementUseCase.findActiveProducts();
+        List<Product> products = productQueryUseCase.findActiveProducts();
         List<ProductDto> productDtos = products.stream()
                 .map(ProductDto::fromDomain)
                 .collect(Collectors.toList());
@@ -116,7 +126,7 @@ public class ProductController {
             return ResponseEntity.badRequest().build();
         }
         
-        List<Product> products = productManagementUseCase.findProductsByName(name);
+        List<Product> products = productQueryUseCase.findProductsByName(name);
         List<ProductDto> productDtos = products.stream()
                 .map(ProductDto::fromDomain)
                 .collect(Collectors.toList());
@@ -136,7 +146,7 @@ public class ProductController {
         try {
             ProductId id = ProductId.of(productId);
             Money price = Money.of(request.getPrice(), request.getCurrency());
-            Product updatedProduct = productManagementUseCase.updateProduct(
+            Product updatedProduct = productCommandUseCase.updateProduct(
                     id,
                     request.getName(),
                     request.getDescription(),
@@ -164,7 +174,7 @@ public class ProductController {
             }
             
             ProductId id = ProductId.of(productId);
-            Product updatedProduct = productManagementUseCase.addStock(id, quantity);
+            Product updatedProduct = productCommandUseCase.addStock(id, quantity);
             return ResponseEntity.ok(ProductDto.fromDomain(updatedProduct));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -187,7 +197,7 @@ public class ProductController {
             }
             
             ProductId id = ProductId.of(productId);
-            Product updatedProduct = productManagementUseCase.removeStock(id, quantity);
+            Product updatedProduct = productCommandUseCase.removeStock(id, quantity);
             return ResponseEntity.ok(ProductDto.fromDomain(updatedProduct));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -206,7 +216,7 @@ public class ProductController {
     public ResponseEntity<ProductDto> activateProduct(@PathVariable String productId) {
         try {
             ProductId id = ProductId.of(productId);
-            Product activatedProduct = productManagementUseCase.activateProduct(id);
+            Product activatedProduct = productCommandUseCase.activateProduct(id);
             return ResponseEntity.ok(ProductDto.fromDomain(activatedProduct));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -223,7 +233,7 @@ public class ProductController {
     public ResponseEntity<ProductDto> deactivateProduct(@PathVariable String productId) {
         try {
             ProductId id = ProductId.of(productId);
-            Product deactivatedProduct = productManagementUseCase.deactivateProduct(id);
+            Product deactivatedProduct = productCommandUseCase.deactivateProduct(id);
             return ResponseEntity.ok(ProductDto.fromDomain(deactivatedProduct));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -240,7 +250,7 @@ public class ProductController {
     public ResponseEntity<Void> deleteProduct(@PathVariable String productId) {
         try {
             ProductId id = ProductId.of(productId);
-            productManagementUseCase.deleteProduct(id);
+            productCommandUseCase.deleteProduct(id);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -253,8 +263,8 @@ public class ProductController {
      * @return inventory statistics
      */
     @GetMapping("/statistics")
-    public ResponseEntity<ProductManagementUseCase.InventoryStatistics> getInventoryStatistics() {
-        ProductManagementUseCase.InventoryStatistics stats = productManagementUseCase.getInventoryStatistics();
+    public ResponseEntity<ProductQueryUseCase.InventoryStatistics> getInventoryStatistics() {
+        ProductQueryUseCase.InventoryStatistics stats = productQueryUseCase.getInventoryStatistics();
         return ResponseEntity.ok(stats);
     }
 }
