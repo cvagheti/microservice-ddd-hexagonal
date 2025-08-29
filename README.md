@@ -39,7 +39,6 @@ microservice-ddd-hexagonal/
 │       │   ├── CreateProductRequest.java
 │       │   └── UpdateProductRequest.java
 │       ├── usecase/                  # Interfaces de casos de uso (Portas de Entrada)
-│       │   ├── ProductManagementUseCase.java   # Casos de uso completos
 │       │   ├── ProductCommandUseCase.java      # Comandos (CQRS)
 │       │   └── ProductQueryUseCase.java        # Consultas (CQRS)
 │       └── repository/               # Interfaces de repositório (Portas de Saída)
@@ -54,7 +53,6 @@ microservice-ddd-hexagonal/
         │   └── adapter/
         │       ├── web/                      # Adaptadores web (Adaptadores Primários)
         │       │   ├── ProductController.java
-        │       │   ├── ProductUseCaseAdapter.java    # Adaptador principal
         │       │   ├── ProductCommandAdapter.java    # Adaptador de comandos
         │       │   └── ProductQueryAdapter.java      # Adaptador de consultas
         │       └── persistence/              # Adaptadores de persistência (Adaptadores Secundários)
@@ -93,7 +91,6 @@ graph TB
 graph LR
     subgraph "Infrastructure Layer (Adaptadores)"
         REST["REST Controller<br/>ProductController"]
-        UseCaseAdapter["Use Case Adapter<br/>ProductUseCaseAdapter"]
         CommandAdapter["Command Adapter<br/>ProductCommandAdapter"]
         QueryAdapter["Query Adapter<br/>ProductQueryAdapter"]
         Persistence["JPA Repository<br/>ProductRepositoryImpl"]
@@ -165,8 +162,9 @@ graph LR
 #### ✅ **Dependências Permitidas:**
 
 **1. Infrastructure → Application**
-- `ProductController` depende de `ProductManagementUseCase`
-- `ProductUseCaseAdapter` implementa `ProductManagementUseCase`
+- `ProductController` depende de `ProductCommandUseCase` e `ProductQueryUseCase`
+- `ProductCommandAdapter` implementa `ProductCommandUseCase`
+- `ProductQueryAdapter` implementa `ProductQueryUseCase`
 - `ApplicationConfiguration` configura beans da aplicação
 
 **2. Infrastructure → Domain**
@@ -175,9 +173,10 @@ graph LR
 - Spring Boot starter executa a partir da infraestrutura
 
 **3. Application → Domain**
-- `ProductApplicationService` usa `Product`, `ProductDomainService`, `ProductRepository`
+- `ProductApplicationService` usa `Product`, `ProductDomainService`
 - `ProductDto` converte de/para entidades do domínio
 - Use cases orquestram operações do domínio
+- **Nota**: Repository interface (`ProductRepository`) está na camada de aplicação, não no domínio
 
 #### ❌ **Dependências Proibidas:**
 
@@ -235,10 +234,10 @@ Infraestrutura ──► Aplicação ──► Domínio
 - **`ProductQueryAdapter`**: Adaptador específico para consultas
 - Operações: buscar por ID, listar todos, buscar por nome, estatísticas
 
-**3. Unified Interface**
-- **`ProductManagementUseCase`**: Interface unificada que combina comandos e consultas
-- **`ProductUseCaseAdapter`**: Adaptador que implementa a interface unificada
-- **`ProductApplicationService`**: Serviço principal que coordena ambos os lados
+**Arquitetura CQRS Pura:**
+- **`ProductController`**: Utiliza diretamente os adaptadores de comando e consulta
+- **Separação clara**: Commands e Queries são tratados por interfaces e adaptadores distintos
+- **Otimização independente**: Cada lado pode ser otimizado para sua responsabilidade específica
 
 ### Domain-Driven Design (DDD)
 
@@ -284,7 +283,6 @@ Infraestrutura ──► Aplicação ──► Domínio
 #### **Conceitos Hexagonais Implementados:**
 
 **1. Inbound Ports (Portas de Entrada)**
-- **`ProductManagementUseCase`**: Define contratos dos casos de uso completos
 - **`ProductCommandUseCase`**: Define contratos para operações de escrita (CQRS)
 - **`ProductQueryUseCase`**: Define contratos para operações de leitura (CQRS)
 - Representa o que a aplicação pode fazer
@@ -298,7 +296,6 @@ Infraestrutura ──► Aplicação ──► Domínio
 
 **3. Primary Adapters (Adaptadores Primários)**
 - **`ProductController`**: Adaptador REST que recebe requisições HTTP
-- **`ProductUseCaseAdapter`**: Implementa casos de uso completos
 - **`ProductCommandAdapter`**: Implementa especificamente comandos (CQRS)
 - **`ProductQueryAdapter`**: Implementa especificamente consultas (CQRS)
 - Traduzem requisições externas para chamadas do domínio
@@ -347,10 +344,46 @@ Infraestrutura ──► Aplicação ──► Domínio
 - **`ProductStatus`**: Enum representando estados do produto (ACTIVE, INACTIVE, DISCONTINUED)
 
 ### 2. **Repository Interface (Porta de Saída)**
-- Interface **`ProductRepository`** na camada de aplicação
+- Interface **`ProductRepository`** na camada de aplicação (seguindo Arquitetura Hexagonal)
 - Implementação **`ProductRepositoryImpl`** na infraestrutura
 - Domínio completamente livre de dependências de persistência
-- Operações especializadas: busca por nome, produtos ativos, estatísticas
+- **Operações Básicas**: CRUD completo (save, findById, findAll, deleteById, count, existsById)
+- **Operações Especializadas**: 
+  - Busca por nome (`findByNameContaining`)
+  - Filtro por status (`findByStatus`, `countByStatus`)
+  - Produtos ativos (`findActiveProducts`)
+  - Validações de unicidade (`existsByName`, `existsByNameAndIdNot`)
+
+**Métodos da Interface ProductRepository:**
+```java
+// Operações básicas de CRUD
+Product save(Product product);
+Optional<Product> findById(ProductId id);
+List<Product> findAll();
+void deleteById(ProductId id);
+boolean existsById(ProductId id);
+long count();
+
+// Operações de busca especializadas
+List<Product> findByNameContaining(String name);
+List<Product> findActiveProducts();
+```
+
+**Métodos Adicionais na Implementação (ProductRepositoryImpl):**
+```java
+// Métodos para validações de domínio
+boolean existsByName(String name);
+boolean existsByNameAndIdNot(String name, ProductId excludeId);
+
+// Métodos para consultas por status
+List<Product> findByStatus(ProductStatus status);
+long countByStatus(ProductStatus status);
+```
+
+**Nota Arquitetural:** A interface do repositório está localizada na camada de aplicação (não no domínio), seguindo os princípios da Arquitetura Hexagonal onde:
+- O **domínio** permanece completamente puro sem interfaces de infraestrutura
+- A **aplicação** define as portas de saída (outbound ports) como interfaces
+- A **infraestrutura** implementa essas interfaces como adaptadores secundários
 
 ### 3. **Serviços de Domínio**
 - **`ProductDomainService`**: Lógica de negócio pura que não pertence a uma entidade específica
@@ -359,6 +392,7 @@ Infraestrutura ──► Aplicação ──► Domínio
   - Cálculo de estatísticas de inventário
 - Recebe dados como parâmetros, sem dependências externas
 - Coordena operações complexas entre entidades
+- **Importante**: Não acessa diretamente o repositório - recebe dados através dos serviços de aplicação
 
 ### 4. **Agregados**
 - **`Product`** como agregado raiz com regras de negócio encapsuladas
@@ -376,8 +410,11 @@ Infraestrutura ──► Aplicação ──► Domínio
 - **`ProductQueryUseCase`**: Define operações de leitura (CQRS)
 
 **Outbound Ports (Portas de Saída)**
-- **`ProductRepository`**: Define contratos de persistência
-- Abstrai completamente os detalhes de implementação
+- **`ProductRepository`**: Define contratos para persistência na camada de aplicação
+- Abstrai detalhes de como os dados são armazenados
+- Permite trocar implementações sem afetar o domínio ou aplicação
+- Define operações de busca, salvamento, exclusão e validações
+- **Métodos adicionais**: Implementação inclui métodos extras para validações de domínio e consultas especializadas
 
 ### Adaptadores (Adapters)
 
@@ -461,12 +498,12 @@ graph LR
 - **`ProductQueryService`**: Serviço especializado em operações de leitura (read-only)
 - **Operações**: `findProductById`, `findAllProducts`, `findProductsByName`, `findActiveProducts`, `getInventoryStatistics`
 
-### Interface Unificada
+### Interface CQRS Pura
 
-**`ProductManagementUseCase`** combina comandos e consultas em uma interface única:
-- Implementada por **`ProductUseCaseAdapter`**
-- Coordenada por **`ProductApplicationService`**
-- Permite uso simples quando separação CQRS não é necessária
+**Implementação CQRS rigorosa** com separação completa de responsabilidades:
+- **`ProductController`** utiliza diretamente `ProductCommandUseCase` e `ProductQueryUseCase`
+- **Otimização independente** de operações de leitura e escrita
+- **Arquitetura limpa** sem interfaces redundantes
 
 ### Benefícios da Implementação CQRS
 
@@ -519,17 +556,13 @@ docker run -p 8080:8080 microservice-ddd
 
 ## API Endpoints
 
-O sistema oferece três níveis de acesso aos casos de uso através da Arquitetura Hexagonal com CQRS:
+O sistema oferece acesso aos casos de uso através da Arquitetura Hexagonal com CQRS puro:
 
-### 1. Interface Unificada (ProductManagementUseCase)
-**Adaptador**: `ProductUseCaseAdapter`  
-**Quando usar**: Operações completas que podem incluir comandos e consultas
-
-### 2. Interface de Comandos (ProductCommandUseCase)
+### 1. Interface de Comandos (ProductCommandUseCase)
 **Adaptador**: `ProductCommandAdapter`  
-**Quando usar**: Operações de escrita especializadas com foco em performance
+**Quando usar**: Operações de escrita especializadas com foco em performance e consistência
 
-### 3. Interface de Consultas (ProductQueryUseCase)
+### 2. Interface de Consultas (ProductQueryUseCase)
 **Adaptador**: `ProductQueryAdapter`  
 **Quando usar**: Operações de leitura especializadas, otimizadas para consultas
 
@@ -670,11 +703,11 @@ POST /api/v1/products
 - **Adaptadores na Infraestrutura**: Implementação de detalhes técnicos
 - **Múltiplas Interfaces**: Suporte a diferentes tipos de adapters
 
-### ✅ **CQRS (Command Query Responsibility Segregation)**
+### ✅ **CQRS Rigoroso**
 - **Separação Clara**: Comandos vs. Consultas com adapters especializados
 - **Otimização Independente**: Performance diferenciada para leitura e escrita
-- **Interface Unificada**: `ProductManagementUseCase` combina ambos os lados
-- **Serviços Especializados**: `CommandService` e `QueryService` focados
+- **Interfaces Focadas**: `ProductCommandUseCase` e `ProductQueryUseCase` sem redundância
+- **Adapters Especializados**: `CommandAdapter` e `QueryAdapter` com responsabilidades únicas
 
 ### ✅ **DDD Rigoroso**
 - **Agregado Raiz**: `Product` com regras de negócio encapsuladas
