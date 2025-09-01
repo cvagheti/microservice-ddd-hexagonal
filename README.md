@@ -70,9 +70,9 @@ graph LR
     subgraph "Application Layer (Orquestração)"
         CommandService["Command Service<br/>ProductCommandService"]
         QueryService["Query Service<br/>ProductQueryService"]
-        CommandUseCase["Command Use Case<br/>ProductCommandUseCase"]
-        QueryUseCase["Query Use Case<br/>ProductQueryUseCase"]
-        Repository["Repository Interface<br/>ProductRepository"]
+        CommandUseCase["(Interface) <br />Command Use Case<br/>ProductCommandUseCase"]
+        QueryUseCase["(Interface) <br/>Query Use Case<br/>ProductQueryUseCase"]
+        Repository["(Interface) <br/>Repository<br/>ProductRepository"]
         DTO["DTOs<br/>ProductDto, Requests"]
     end
     
