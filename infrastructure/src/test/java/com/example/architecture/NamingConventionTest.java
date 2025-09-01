@@ -86,7 +86,8 @@ class NamingConventionTest {
                 .should().haveSimpleNameEndingWith("Component")
                 .orShould().haveSimpleNameEndingWith("Adapter")
                 .orShould().haveSimpleNameEndingWith("Helper")
-                .orShould().haveSimpleNameEndingWith("Util");
+                .orShould().haveSimpleNameEndingWith("Util")
+                .orShould().haveSimpleNameEndingWith("Mapper");
 
         rule.check(importedClasses);
     }

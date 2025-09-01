@@ -4,6 +4,7 @@ import com.example.domain.model.Product;
 import com.example.domain.model.ProductId;
 import com.example.domain.model.ProductStatus;
 import com.example.application.repository.ProductRepository;
+import com.example.infrastructure.persistence.mapper.ProductMapper;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -20,20 +21,23 @@ import java.util.stream.Collectors;
 public class ProductRepositoryImpl implements ProductRepository {
     
     private final ProductJpaRepository jpaRepository;
+    private final ProductMapper productMapper;
     
-    public ProductRepositoryImpl(ProductJpaRepository jpaRepository) {
+    public ProductRepositoryImpl(ProductJpaRepository jpaRepository, ProductMapper productMapper) {
         this.jpaRepository = Objects.requireNonNull(jpaRepository, 
                 "JPA repository cannot be null");
+        this.productMapper = Objects.requireNonNull(productMapper,
+                "Product mapper cannot be null");
     }
     
     @Override
     public Product save(Product product) {
         Objects.requireNonNull(product, "Product cannot be null");
         
-        ProductJpaEntity jpaEntity = ProductJpaEntity.fromDomain(product);
+        ProductJpaEntity jpaEntity = productMapper.toJpaEntity(product);
         ProductJpaEntity savedEntity = jpaRepository.save(jpaEntity);
         
-        return savedEntity.toDomain();
+        return productMapper.toDomainEntity(savedEntity);
     }
     
     @Override
@@ -41,14 +45,14 @@ public class ProductRepositoryImpl implements ProductRepository {
         Objects.requireNonNull(id, "Product ID cannot be null");
         
         return jpaRepository.findById(id.getValue())
-                .map(ProductJpaEntity::toDomain);
+                .map(productMapper::toDomainEntity);
     }
     
     @Override
     public List<Product> findAll() {
         return jpaRepository.findAll()
                 .stream()
-                .map(ProductJpaEntity::toDomain)
+                .map(productMapper::toDomainEntity)
                 .collect(Collectors.toList());
     }
     
@@ -60,7 +64,7 @@ public class ProductRepositoryImpl implements ProductRepository {
         
         return jpaRepository.findByNameContainingIgnoreCase(name.trim())
                 .stream()
-                .map(ProductJpaEntity::toDomain)
+                .map(productMapper::toDomainEntity)
                 .collect(Collectors.toList());
     }
     
@@ -68,7 +72,7 @@ public class ProductRepositoryImpl implements ProductRepository {
     public List<Product> findActiveProducts() {
         return jpaRepository.findActiveProducts()
                 .stream()
-                .map(ProductJpaEntity::toDomain)
+                .map(productMapper::toDomainEntity)
                 .collect(Collectors.toList());
     }
     
@@ -133,7 +137,7 @@ public class ProductRepositoryImpl implements ProductRepository {
         
         return jpaRepository.findByStatus(status)
                 .stream()
-                .map(ProductJpaEntity::toDomain)
+                .map(productMapper::toDomainEntity)
                 .collect(Collectors.toList());
     }
     
