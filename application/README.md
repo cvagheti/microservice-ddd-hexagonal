@@ -29,11 +29,9 @@ application/
 │   ├── repository/               # Outbound Ports
 │   │   └── ProductRepository.java
 │   ├── service/                  # Application Services (CQRS)
-│   │   ├── ProductApplicationService.java  # Unified Service
 │   │   ├── ProductCommandService.java      # Command Service
 │   │   └── ProductQueryService.java        # Query Service
 │   └── usecase/                  # Inbound Ports
-│       ├── ProductManagementUseCase.java   # Unified Interface
 │       ├── ProductCommandUseCase.java      # Command Interface
 │       └── ProductQueryUseCase.java        # Query Interface
 └── pom.xml
@@ -92,9 +90,8 @@ public interface ProductQueryUseCase {
 ### Inbound Ports (Use Cases)
 Define what the application can do - the contracts for external actors:
 
-1. **`ProductManagementUseCase`**: Complete product management interface
-2. **`ProductCommandUseCase`**: Write operations interface
-3. **`ProductQueryUseCase`**: Read operations interface
+1. **`ProductCommandUseCase`**: Write operations interface
+2. **`ProductQueryUseCase`**: Read operations interface
 
 ### Outbound Ports (Repository)
 Define what the application needs from external systems:
@@ -105,12 +102,6 @@ Define what the application needs from external systems:
    - Technology-agnostic interface
 
 ## 🔧 Application Services
-
-### ProductApplicationService
-**Role**: Unified orchestration service
-- Coordinates both command and query operations
-- Used by unified adapter (`ProductUseCaseAdapter`)
-- Delegates to specialized services when needed
 
 ### ProductCommandService
 **Role**: Command operations specialist

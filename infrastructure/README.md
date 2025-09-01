@@ -27,7 +27,6 @@ infrastructure/
 │   │   ├── adapter/
 │   │   │   └── web/                          # Primary Adapters (Inbound)
 │   │   │       ├── ProductController.java        # REST Controller
-│   │   │       ├── ProductUseCaseAdapter.java    # Unified Adapter
 │   │   │       ├── ProductCommandAdapter.java    # Command Adapter
 │   │   │       └── ProductQueryAdapter.java      # Query Adapter
 │   │   ├── configuration/
@@ -56,11 +55,6 @@ Handle external requests and drive the application:
 - Implements error handling
 
 #### 2. Use Case Adapters
-**`ProductUseCaseAdapter`**: Unified interface implementation
-- Implements `ProductManagementUseCase`
-- Delegates to `ProductApplicationService`
-- Used for complete business operations
-
 **`ProductCommandAdapter`**: Command operations specialist
 - Implements `ProductCommandUseCase`
 - Delegates to `ProductCommandService`
