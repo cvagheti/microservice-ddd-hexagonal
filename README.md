@@ -165,7 +165,7 @@ graph LR
 **1. Inversão de Dependências**
 ```
 Infraestrutura ──► Aplicação ──► Domínio
-     ↑                            ↑
+     |                            ↑
      └────────────────────────────┘
 ```
 - Fluxo de controle: Infrastructure → Application → Domain
