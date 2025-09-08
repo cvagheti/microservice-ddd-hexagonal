@@ -31,7 +31,6 @@ microservice-ddd-hexagonal/
 │   ├── pom.xml
 │   └── src/main/java/com/example/application/
 │       ├── service/                  # Serviços de aplicação (CQRS)
-│       │   ├── ProductApplicationService.java  # Serviço principal
 │       │   ├── ProductCommandService.java      # Serviço de comandos
 │       │   └── ProductQueryService.java        # Serviço de consultas
 │       ├── dto/                      # Objetos de transferência de dados
@@ -98,7 +97,6 @@ graph LR
     end
     
     subgraph "Application Layer (Orquestração)"
-        AppService["Application Service<br/>ProductApplicationService"]
         CommandService["Command Service<br/>ProductCommandService"]
         QueryService["Query Service<br/>ProductQueryService"]
         ManagementUseCase["Management Use Case<br/>ProductManagementUseCase"]
@@ -122,15 +120,11 @@ graph LR
     CommandAdapter --> CommandUseCase
     QueryAdapter --> QueryUseCase
     
-    ManagementUseCase --> AppService
     CommandUseCase --> CommandService
     QueryUseCase --> QueryService
     
-    AppService --> DomainService
     CommandService --> DomainService
     QueryService --> Repository
-    
-    AppService --> Repository
     CommandService --> Repository
     Persistence --> Repository
     
@@ -144,7 +138,6 @@ graph LR
     style QueryAdapter fill:#ffcdd2
     style Persistence fill:#ffcdd2
     style Config fill:#ffcdd2
-    style AppService fill:#fff3e0
     style CommandService fill:#fff3e0
     style QueryService fill:#fff3e0
     style ManagementUseCase fill:#fff3e0
@@ -173,7 +166,7 @@ graph LR
 - Spring Boot starter executa a partir da infraestrutura
 
 **3. Application → Domain**
-- `ProductApplicationService` usa `Product`, `ProductDomainService`
+- `ProductCommandService` e `ProductQueryService` usam `Product`, `ProductDomainService`
 - `ProductDto` converte de/para entidades do domínio
 - Use cases orquestram operações do domínio
 - **Nota**: Repository interface (`ProductRepository`) está na camada de aplicação, não no domínio
@@ -270,11 +263,10 @@ Infraestrutura ──► Aplicação ──► Domínio
 - Valida regras de negócio como unicidade de nome e consistência de dados
 
 **5. Application Services (CQRS)**
-- **`ProductApplicationService`**: Orquestra casos de uso e coordena operações completas
 - **`ProductCommandService`**: Especializado em operações de escrita (comandos)
 - **`ProductQueryService`**: Especializado em operações de leitura (consultas)
 - Não contém lógica de negócio, apenas orquestração
-- Implementa padrão CQRS (Command Query Responsibility Segregation)
+- Implementa padrão CQRS (Command Query Responsibility Segregation) puro
 
 ### Arquitetura Hexagonal (Ports & Adapters)
 

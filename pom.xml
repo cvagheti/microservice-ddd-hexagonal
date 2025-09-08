@@ -34,6 +34,7 @@
         <jakarta.persistence.version>3.1.0</jakarta.persistence.version>
         <h2.version>2.2.224</h2.version>
         <postgresql.version>42.6.0</postgresql.version>
+        <archunit.version>1.4.1</archunit.version>
     </properties>
 
     <dependencyManagement>
@@ -95,6 +96,14 @@
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
                 <version>${assertj.version}</version>
+                <scope>test</scope>
+            </dependency>
+            
+            <!-- ArchUnit for Architecture Testing -->
+            <dependency>
+                <groupId>com.tngtech.archunit</groupId>
+                <artifactId>archunit</artifactId>
+                <version>${archunit.version}</version>
                 <scope>test</scope>
             </dependency>
 

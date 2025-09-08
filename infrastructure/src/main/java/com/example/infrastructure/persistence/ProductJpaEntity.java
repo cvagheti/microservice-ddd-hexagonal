@@ -67,7 +67,9 @@ public class ProductJpaEntity {
     
     /**
      * Factory method to create JPA entity from domain entity.
+     * @deprecated Use ProductMapper.toJpaEntity() instead
      */
+    @Deprecated(since = "1.3.0", forRemoval = true)
     public static ProductJpaEntity fromDomain(Product product) {
         Objects.requireNonNull(product, "Product cannot be null");
         
@@ -86,7 +88,9 @@ public class ProductJpaEntity {
     
     /**
      * Convert JPA entity to domain entity.
+     * @deprecated Use ProductMapper.toDomainEntity() instead
      */
+    @Deprecated(since = "1.3.0", forRemoval = true)
     public Product toDomain() {
         ProductId productId = ProductId.of(this.id);
         Money productPrice = Money.of(this.price, this.currency);

@@ -1,0 +1,3 @@
+#
+#Mon Sep 01 16:50:32 BRT 2025
+no\ classes\ that\ reside\ in\ a\ package\ '..domain..'\ should\ depend\ on\ classes\ that\ reside\ in\ any\ package\ ['..spring..',\ '..jakarta..']=31c53112-e933-4592-bd68-e38aa66dd26b
