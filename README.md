@@ -94,7 +94,6 @@ graph LR
     subgraph "Application Layer (Orquestração)"
         CommandService["Command Service<br/>ProductCommandService"]
         QueryService["Query Service<br/>ProductQueryService"]
-        ManagementUseCase["Management Use Case<br/>ProductManagementUseCase"]
         CommandUseCase["Command Use Case<br/>ProductCommandUseCase"]
         QueryUseCase["Query Use Case<br/>ProductQueryUseCase"]
         Repository["Repository Interface<br/>ProductRepository"]
@@ -372,7 +371,6 @@ long countByStatus(ProductStatus status);
 ### Portas (Ports)
 
 **Inbound Ports (Portas de Entrada)**
-- **`ProductManagementUseCase`**: Define casos de uso completos (interface unificada)
 - **`ProductCommandUseCase`**: Define operações de escrita (CQRS)
 - **`ProductQueryUseCase`**: Define operações de leitura (CQRS)
 
