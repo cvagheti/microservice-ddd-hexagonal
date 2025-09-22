@@ -79,7 +79,7 @@ domain/
 ## 📋 Exemplos de Uso
 
 ### Criando um Produto
-``java
+```java
 // Criar value objects
 ProductId id = ProductId.generate();
 Money price = Money.of(new BigDecimal("99.99"), "USD");
@@ -89,7 +89,7 @@ Product product = Product.create(id, "iPhone 15", "Latest iPhone", price, 100);
 ```
 
 ### Gerenciamento de Estoque
-``java
+```java
 // Adicionar estoque
 product.addStock(50);
 
@@ -98,7 +98,7 @@ product.removeStock(10); // Lança exceção se estoque insuficiente
 ```
 
 ### Gerenciamento de Status
-``java
+```java
 // Ativar produto
 product.activate();
 
@@ -107,7 +107,7 @@ product.deactivate();
 ```
 
 ### Uso do Serviço de Domínio
-``java
+```java
 ProductDomainService domainService = new ProductDomainService();
 
 // Validar unicidade
@@ -125,7 +125,7 @@ var stats = domainService.calculateInventoryStatistics(products);
 
 A camada de domínio é projetada para facilitar testes unitários:
 
-``java
+```java
 @Test
 void shouldAddStockCorrectly() {
     // Given

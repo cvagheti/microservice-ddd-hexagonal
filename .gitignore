@@ -51,6 +51,7 @@ build/
 out/
 
 # Eclipse
+.metadata
 .apt_generated
 .classpath
 .factorypath

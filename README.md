@@ -68,7 +68,7 @@ microservice-ddd-hexagonal/
 
 ### Diagrama de Dependências Maven
 
-```
+```mermaid
 graph TB
     Root["microservice-ddd-hexagonal<br/>(POM Pai)"] --> Domain["domain<br/>(JAR)"]
     Root --> Application["application<br/>(JAR)"]
@@ -77,16 +77,11 @@ graph TB
     Application --> Domain
     Infrastructure --> Application
     Infrastructure --> Domain
-    
-    style Root fill:#e1f5fe
-    style Domain fill:#c8e6c9
-    style Application fill:#fff3e0
-    style Infrastructure fill:#fce4ec
 ```
 
 ### Fluxo de Dependências (Arquitetura Hexagonal + CQRS)
 
-```
+```mermaid
 graph LR
     subgraph "Infrastructure Layer (Adaptadores)"
         REST["REST Controller<br/>ProductController"]
@@ -99,7 +94,6 @@ graph LR
     subgraph "Application Layer (Orquestração)"
         CommandService["Command Service<br/>ProductCommandService"]
         QueryService["Query Service<br/>ProductQueryService"]
-        ManagementUseCase["Management Use Case<br/>ProductManagementUseCase"]
         CommandUseCase["Command Use Case<br/>ProductCommandUseCase"]
         QueryUseCase["Query Use Case<br/>ProductQueryUseCase"]
         Repository["Repository Interface<br/>ProductRepository"]
@@ -112,11 +106,9 @@ graph LR
         DomainService["Domain Service<br/>ProductDomainService"]
     end
     
-    REST --> UseCaseAdapter
     REST --> CommandAdapter
     REST --> QueryAdapter
     
-    UseCaseAdapter --> ManagementUseCase
     CommandAdapter --> CommandUseCase
     QueryAdapter --> QueryUseCase
     
@@ -128,26 +120,8 @@ graph LR
     CommandService --> Repository
     Persistence --> Repository
     
-    AppService --> Entity
     CommandService --> Entity
     Entity --> ValueObject
-    
-    style REST fill:#ffcdd2
-    style UseCaseAdapter fill:#ffcdd2
-    style CommandAdapter fill:#ffcdd2
-    style QueryAdapter fill:#ffcdd2
-    style Persistence fill:#ffcdd2
-    style Config fill:#ffcdd2
-    style CommandService fill:#fff3e0
-    style QueryService fill:#fff3e0
-    style ManagementUseCase fill:#fff3e0
-    style CommandUseCase fill:#fff3e0
-    style QueryUseCase fill:#fff3e0
-    style DTO fill:#fff3e0
-    style Entity fill:#c8e6c9
-    style ValueObject fill:#c8e6c9
-    style DomainService fill:#c8e6c9
-    style Repository fill:#fff3e0
 ```
 
 ### Regras de Dependência
@@ -190,7 +164,7 @@ graph LR
 **1. Inversão de Dependências**
 ```
 Infraestrutura ──► Aplicação ──► Domínio
-     ↑                            ↑
+     |                            ↑
      └────────────────────────────┘
 ```
 - Fluxo de controle: Infrastructure → Application → Domain
@@ -397,7 +371,6 @@ long countByStatus(ProductStatus status);
 ### Portas (Ports)
 
 **Inbound Ports (Portas de Entrada)**
-- **`ProductManagementUseCase`**: Define casos de uso completos (interface unificada)
 - **`ProductCommandUseCase`**: Define operações de escrita (CQRS)
 - **`ProductQueryUseCase`**: Define operações de leitura (CQRS)
 
@@ -440,7 +413,7 @@ long countByStatus(ProductStatus status);
 
 **Responsabilidade**: Operações que modificam o estado do sistema
 
-```
+```mermaid
 graph LR
     Request["HTTP Request"] --> Controller["ProductController"]
     Controller --> CommandAdapter["ProductCommandAdapter"]
@@ -448,14 +421,6 @@ graph LR
     CommandUseCase --> CommandService["ProductCommandService"]
     CommandService --> Domain["Product + DomainService"]
     CommandService --> Repository["ProductRepository"]
-    
-    style Request fill:#ffebee
-    style Controller fill:#ffcdd2
-    style CommandAdapter fill:#ffcdd2
-    style CommandUseCase fill:#fff3e0
-    style CommandService fill:#fff3e0
-    style Domain fill:#c8e6c9
-    style Repository fill:#fff3e0
 ```
 
 **Componentes do Command Side:**
@@ -468,20 +433,13 @@ graph LR
 
 **Responsabilidade**: Operações que leem dados sem modificar o estado
 
-```
+```mermaid
 graph LR
     Request["HTTP Request"] --> Controller["ProductController"]
     Controller --> QueryAdapter["ProductQueryAdapter"]
     QueryAdapter --> QueryUseCase["ProductQueryUseCase"]
     QueryUseCase --> QueryService["ProductQueryService"]
     QueryService --> Repository["ProductRepository"]
-    
-    style Request fill:#e8f5e8
-    style Controller fill:#c8e6c9
-    style QueryAdapter fill:#c8e6c9
-    style QueryUseCase fill:#e1f5fe
-    style QueryService fill:#e1f5fe
-    style Repository fill:#e1f5fe
 ```
 
 **Componentes do Query Side:**
